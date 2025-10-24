@@ -154,3 +154,104 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Subtle corner wave patterns */
+  .wave-corner {
+    position: absolute;
+    opacity: 0.15;
+    pointer-events: none;
+  }
+  
+  .wave-corner-top-left {
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, 
+      oklch(0.45 0.08 35) 0%, 
+      oklch(0.35 0.05 30) 50%, 
+      transparent 100%);
+    mask: radial-gradient(ellipse 200px 200px at 0% 0%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+    -webkit-mask: radial-gradient(ellipse 200px 200px at 0% 0%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+  }
+  
+  .wave-corner-top-right {
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(225deg, 
+      oklch(0.45 0.08 35) 0%, 
+      oklch(0.35 0.05 30) 50%, 
+      transparent 100%);
+    mask: radial-gradient(ellipse 200px 200px at 100% 0%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+    -webkit-mask: radial-gradient(ellipse 200px 200px at 100% 0%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+  }
+  
+  .wave-corner-bottom-left {
+    bottom: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(45deg, 
+      oklch(0.45 0.08 35) 0%, 
+      oklch(0.35 0.05 30) 50%, 
+      transparent 100%);
+    mask: radial-gradient(ellipse 200px 200px at 0% 100%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+    -webkit-mask: radial-gradient(ellipse 200px 200px at 0% 100%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+  }
+  
+  .wave-corner-bottom-right {
+    bottom: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(315deg, 
+      oklch(0.45 0.08 35) 0%, 
+      oklch(0.35 0.05 30) 50%, 
+      transparent 100%);
+    mask: radial-gradient(ellipse 200px 200px at 100% 100%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+    -webkit-mask: radial-gradient(ellipse 200px 200px at 100% 100%, 
+      black 0%, 
+      black 60%, 
+      transparent 100%);
+  }
+  
+  /* Wave pattern overlay */
+  .wave-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.08;
+    background-image: 
+      radial-gradient(circle at 20% 20%, oklch(0.45 0.08 35) 1px, transparent 1px),
+      radial-gradient(circle at 80% 80%, oklch(0.35 0.05 30) 1px, transparent 1px),
+      radial-gradient(circle at 40% 60%, oklch(0.55 0.06 25) 1px, transparent 1px);
+    background-size: 50px 50px, 60px 60px, 40px 40px;
+    pointer-events: none;
+  }
+}

@@ -21,8 +21,17 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-secondary/20">
-      <div className="max-w-2xl w-full text-center space-y-8">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background to-secondary/20 relative overflow-hidden">
+      {/* Subtle corner wave elements */}
+      <div className="wave-corner wave-corner-top-left"></div>
+      <div className="wave-corner wave-corner-top-right"></div>
+      <div className="wave-corner wave-corner-bottom-left"></div>
+      <div className="wave-corner wave-corner-bottom-right"></div>
+      
+      {/* Subtle wave pattern overlay */}
+      <div className="wave-pattern"></div>
+      
+      <div className="max-w-2xl w-full text-center space-y-8 relative z-10">
         <div className="flex items-center justify-center mb-8">
           <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
             <Wallet className="w-8 h-8 text-primary-foreground" />
