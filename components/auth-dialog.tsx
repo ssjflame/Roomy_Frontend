@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useStore } from "@/lib/store"
 import { Loader2 } from "lucide-react"
+import { authApi } from "@/lib/api"
 
 interface AuthDialogProps {
   open: boolean
@@ -20,7 +21,7 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const router = useRouter()
-  const { setUser, setIsLoading } = useStore()
+  const { setUser } = useStore()
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,25 +40,23 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     setIsAuthenticating(true)
 
     try {
-      // Call backend API to authenticate with Openfort
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      // TODO: This will connect to the backend when ready
+      // Currently using mock data from lib/api.ts
+      const response = await authApi.login({
+        email: loginEmail,
+        password: loginPassword,
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Login failed")
+      // Store auth token
+      if (typeof window !== "undefined") {
+        localStorage.setItem("auth_token", response.token)
       }
-
-      const data = await response.json()
 
       // Set user in store
       setUser({
-        id: data.user.id,
-        email: data.user.email,
-        walletAddress: data.wallet.address,
+        id: response.user.id,
+        email: response.user.email,
+        walletAddress: response.user.walletAddress || "",
       })
 
       // Close dialog and redirect to dashboard
@@ -76,29 +75,24 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     setIsAuthenticating(true)
 
     try {
-      // Call backend API to register with Openfort
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: registerEmail,
-          password: registerPassword,
-          name: registerName,
-        }),
+      // TODO: This will connect to the backend when ready
+      // Currently using mock data from lib/api.ts
+      const response = await authApi.register({
+        email: registerEmail,
+        password: registerPassword,
+        name: registerName,
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Registration failed")
+      // Store auth token
+      if (typeof window !== "undefined") {
+        localStorage.setItem("auth_token", response.token)
       }
-
-      const data = await response.json()
 
       // Set user in store
       setUser({
-        id: data.user.id,
-        email: data.user.email,
-        walletAddress: data.wallet.address,
+        id: response.user.id,
+        email: response.user.email,
+        walletAddress: response.user.walletAddress || "",
       })
 
       // Close dialog and redirect to dashboard
