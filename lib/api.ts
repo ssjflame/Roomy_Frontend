@@ -1,17 +1,23 @@
 import type {
   User,
+  Wallet,
   AuthResponse,
+  AuthData,
+  ApiResponse,
   Group,
   Bill,
   Transaction,
   RegisterRequest,
   LoginRequest,
+  RefreshTokenRequest,
+  LogoutRequest,
+  ChangePasswordRequest,
   CreateGroupRequest,
   CreateBillRequest,
   VoteRequest,
 } from "./types"
 
-// TODO: Replace with your actual backend URL when deployed
+// Backend API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
 
 // Helper function to get auth token from localStorage
@@ -20,16 +26,91 @@ const getAuthToken = (): string | null => {
   return localStorage.getItem("auth_token")
 }
 
-// Helper function to make authenticated requests
+// Helper function to get refresh token from localStorage
+const getRefreshToken = (): string | null => {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("refresh_token")
+}
+
+// Helper function to refresh access token
+const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return null
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    })
+
+    const result: ApiResponse = await response.json()
+
+    if (result.success && result.data) {
+      const { accessToken } = result.data as { accessToken: string }
+      localStorage.setItem("auth_token", accessToken)
+      return accessToken
+    }
+  } catch (error) {
+    console.error("Token refresh failed:", error)
+  }
+
+  // If refresh fails, clear tokens and redirect to login
+  localStorage.removeItem("auth_token")
+  localStorage.removeItem("refresh_token")
+  return null
+}
+
+// Helper function to make authenticated requests with auto-refresh
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = getAuthToken()
+  let token = getAuthToken()
+  
+  const makeRequest = async (authToken: string | null) => {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    }
+
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      ...options,
+      headers,
+    })
+
+    return response
+  }
+
+  // First attempt
+  let response = await makeRequest(token)
+  
+  // If unauthorized and we have a refresh token, try to refresh
+  if (response.status === 401 && getRefreshToken()) {
+    const newToken = await refreshAccessToken()
+    if (newToken) {
+      // Retry with new token
+      response = await makeRequest(newToken)
+    }
+  }
+
+  const result: ApiResponse = await response.json()
+
+  if (!result.success) {
+    throw new Error(result.error || "Request failed")
+  }
+
+  return result
+}
+
+// Helper function to make unauthenticated requests
+async function fetchApi(url: string, options: RequestInit = {}) {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
-  }
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`
   }
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
@@ -37,12 +118,13 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     headers,
   })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "An error occurred" }))
-    throw new Error(error.message || "Request failed")
+  const result: ApiResponse = await response.json()
+
+  if (!result.success) {
+    throw new Error(result.error || "Request failed")
   }
 
-  return response.json()
+  return result
 }
 
 // ============================================================================
@@ -52,82 +134,89 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 export const authApi = {
   /**
    * Register a new user
-   * TODO: Connect to POST /api/users/register endpoint
    */
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/users/register", {
-    //   method: "POST",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] authApi.register called with:", data)
-    return {
-      user: {
-        id: "mock-user-id",
-        email: data.email,
-        name: data.name,
-        walletAddress: "0x" + Math.random().toString(16).slice(2, 42),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      token: "mock-jwt-token",
-    }
+  async register(data: RegisterRequest): Promise<AuthData> {
+    const response = await fetchApi("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as AuthData
   },
 
   /**
    * Login user
-   * TODO: Connect to POST /api/users/login endpoint
    */
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/users/login", {
-    //   method: "POST",
-    //   body: JSON.stringify(data),
-    // })
+  async login(data: LoginRequest): Promise<AuthData> {
+    const response = await fetchApi("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as AuthData
+  },
 
-    // Mock response for now
-    console.log("[v0] authApi.login called with:", data)
-    return {
-      user: {
-        id: "mock-user-id",
-        email: data.email,
-        name: "Mock User",
-        walletAddress: "0x" + Math.random().toString(16).slice(2, 42),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      token: "mock-jwt-token",
-    }
+  /**
+   * Refresh access token
+   */
+  async refresh(data: RefreshTokenRequest): Promise<{ accessToken: string }> {
+    const response = await fetchApi("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as { accessToken: string }
+  },
+
+  /**
+   * Logout user (invalidate refresh token)
+   */
+  async logout(data: LogoutRequest): Promise<void> {
+    await fetchApi("/auth/logout", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * Logout from all devices
+   */
+  async logoutAll(): Promise<void> {
+    await fetchWithAuth("/auth/logout-all", {
+      method: "POST",
+    })
+  },
+
+  /**
+   * Change password
+   */
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await fetchWithAuth("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   },
 
   /**
    * Get current user profile
-   * TODO: Connect to GET /api/users/profile endpoint
    */
-  async getProfile(): Promise<User> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/users/profile")
+  async getProfile(): Promise<{ user: User; wallet?: Wallet }> {
+    const response = await fetchWithAuth("/auth/me")
+    return response.data as { user: User; wallet?: Wallet }
+  },
 
-    // Mock response for now
-    console.log("[v0] authApi.getProfile called")
-    throw new Error("Not authenticated")
+  /**
+   * Create/update session (get user and wallet)
+   */
+  async session(): Promise<{ user: User; wallet: Wallet }> {
+    const response = await fetchWithAuth("/auth/session", {
+      method: "POST",
+    })
+    return response.data as { user: User; wallet: Wallet }
   },
 
   /**
    * Update user profile
-   * TODO: Connect to PUT /api/users/profile endpoint
    */
   async updateProfile(data: Partial<User>): Promise<User> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/users/profile", {
-    //   method: "PUT",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] authApi.updateProfile called with:", data)
+    // TODO: Implement when backend endpoint is available
     throw new Error("Not implemented")
   },
 }
@@ -139,74 +228,41 @@ export const authApi = {
 export const groupsApi = {
   /**
    * Create a new group
-   * TODO: Connect to POST /api/groups endpoint
    */
   async create(data: CreateGroupRequest): Promise<Group> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/groups", {
-    //   method: "POST",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] groupsApi.create called with:", data)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Get all groups for current user
-   * TODO: Connect to GET /api/groups endpoint
    */
   async getAll(): Promise<Group[]> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/groups")
-
-    // Mock response for now
-    console.log("[v0] groupsApi.getAll called")
+    // TODO: Connect to backend endpoint when available
     return []
   },
 
   /**
    * Get group by ID
-   * TODO: Connect to GET /api/groups/:id endpoint
    */
   async getById(id: string): Promise<Group> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/groups/${id}`)
-
-    // Mock response for now
-    console.log("[v0] groupsApi.getById called with:", id)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Update group
-   * TODO: Connect to PUT /api/groups/:id endpoint
    */
   async update(id: string, data: Partial<CreateGroupRequest>): Promise<Group> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/groups/${id}`, {
-    //   method: "PUT",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] groupsApi.update called with:", id, data)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Delete group
-   * TODO: Connect to DELETE /api/groups/:id endpoint
    */
   async delete(id: string): Promise<void> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/groups/${id}`, {
-    //   method: "DELETE",
-    // })
-
-    // Mock response for now
-    console.log("[v0] groupsApi.delete called with:", id)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 }
@@ -218,105 +274,63 @@ export const groupsApi = {
 export const billsApi = {
   /**
    * Create a new bill
-   * TODO: Connect to POST /api/bills endpoint
    */
   async create(data: CreateBillRequest): Promise<Bill> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/bills", {
-    //   method: "POST",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] billsApi.create called with:", data)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Get all bills for current user
-   * TODO: Connect to GET /api/bills endpoint
    */
   async getAll(): Promise<Bill[]> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth("/bills")
-
-    // Mock response for now
-    console.log("[v0] billsApi.getAll called")
+    // TODO: Connect to backend endpoint when available
     return []
   },
 
   /**
    * Get bill by ID
-   * TODO: Connect to GET /api/bills/:id endpoint
    */
   async getById(id: string): Promise<Bill> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/bills/${id}`)
-
-    // Mock response for now
-    console.log("[v0] billsApi.getById called with:", id)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Update bill
-   * TODO: Connect to PUT /api/bills/:id endpoint
    */
   async update(id: string, data: Partial<CreateBillRequest>): Promise<Bill> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/bills/${id}`, {
-    //   method: "PUT",
-    //   body: JSON.stringify(data),
-    // })
-
-    // Mock response for now
-    console.log("[v0] billsApi.update called with:", id, data)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
    * Delete bill
-   * TODO: Connect to DELETE /api/bills/:id endpoint
    */
   async delete(id: string): Promise<void> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/bills/${id}`, {
-    //   method: "DELETE",
-    // })
-
-    // Mock response for now
-    console.log("[v0] billsApi.delete called with:", id)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 
   /**
-   * Vote on a bill
-   * TODO: Connect to POST /api/bills/:id/vote endpoint (or similar)
+   * Vote on bill
    */
   async vote(data: VoteRequest): Promise<Bill> {
-    // TODO: Uncomment when backend is ready
-    // return fetchWithAuth(`/bills/${data.billId}/vote`, {
-    //   method: "POST",
-    //   body: JSON.stringify({ vote: data.vote }),
-    // })
-
-    // Mock response for now
-    console.log("[v0] billsApi.vote called with:", data)
+    // TODO: Connect to backend endpoint when available
     throw new Error("Not implemented")
   },
 }
 
 // ============================================================================
-// TRANSACTIONS API (if needed)
+// TRANSACTIONS API
 // ============================================================================
 
 export const transactionsApi = {
   /**
-   * Get all transactions for a group
-   * TODO: Add endpoint to backend if needed
+   * Get transactions by group
    */
   async getByGroup(groupId: string): Promise<Transaction[]> {
-    console.log("[v0] transactionsApi.getByGroup called with:", groupId)
+    // TODO: Connect to backend endpoint when available
     return []
   },
 }

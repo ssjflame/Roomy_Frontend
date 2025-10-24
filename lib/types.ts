@@ -1,17 +1,47 @@
+// Backend API Response Envelope
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  message?: string
+  data?: T
+  error?: string
+  errors?: Record<string, string[]> // for validation errors
+}
+
 // User types matching backend schema
 export interface User {
   id: string
   email: string
-  name: string
+  username: string
+  firstName?: string
+  lastName?: string
+  phoneNumber?: string
   walletAddress?: string
   createdAt: string
   updatedAt: string
 }
 
-export interface AuthResponse {
-  user: User
-  token: string
+// Wallet type for Openfort integration
+export interface Wallet {
+  id: string
+  userId: string
+  openfortPlayerId: string
+  address: string
+  chainId: number
+  balance: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
+
+// Auth response data structure
+export interface AuthData {
+  user: User
+  accessToken: string
+  refreshToken: string
+  wallet?: Wallet
+}
+
+export interface AuthResponse extends ApiResponse<AuthData> {}
 
 // Group types matching backend schema
 export interface Group {
@@ -72,16 +102,32 @@ export interface Transaction {
   updatedAt: string
 }
 
-// API request/response types
+// API request types matching backend specification
 export interface RegisterRequest {
   email: string
+  username: string
   password: string
-  name: string
+  firstName?: string
+  lastName?: string
+  phoneNumber?: string
 }
 
 export interface LoginRequest {
-  email: string
+  emailOrUsername: string
   password: string
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
+export interface LogoutRequest {
+  refreshToken: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
 }
 
 export interface CreateGroupRequest {

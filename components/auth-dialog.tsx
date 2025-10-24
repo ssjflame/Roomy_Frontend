@@ -1,16 +1,21 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { authApi } from "@/lib/api"
 import { useStore } from "@/lib/store"
-import { Loader2, Wallet } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface AuthDialogProps {
   open: boolean
@@ -18,223 +23,228 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const { setUser, setWallet } = useStore()
   const router = useRouter()
-  const { setUser, setIsLoading } = useStore()
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState("")
-  const [loginPassword, setLoginPassword] = useState("")
+  const [loginData, setLoginData] = useState({
+    emailOrUsername: "",
+    password: "",
+  })
 
   // Register form state
-  const [registerEmail, setRegisterEmail] = useState("")
-  const [registerPassword, setRegisterPassword] = useState("")
-  const [registerName, setRegisterName] = useState("")
+  const [registerData, setRegisterData] = useState({
+    email: "",
+    username: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+  })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setIsAuthenticating(true)
+    setIsLoading(true)
 
     try {
-      // Call backend API to authenticate with Openfort
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Login failed")
+      const response = await authApi.login(loginData)
+      
+      // Store tokens
+      localStorage.setItem("auth_token", response.accessToken)
+      localStorage.setItem("refresh_token", response.refreshToken)
+      
+      // Update store with user data
+      setUser(response.user)
+      
+      // If wallet is included in response, set it
+      if (response.wallet) {
+        setWallet(response.wallet)
       }
 
-      const data = await response.json()
-
-      // Set user in store
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        walletAddress: data.wallet.address,
-      })
-
-      // Close dialog and redirect to dashboard
+      toast.success("Login successful!")
       onOpenChange(false)
       router.push("/dashboard")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during login")
+    } catch (error) {
+      console.error("Login error:", error)
+      toast.error(error instanceof Error ? error.message : "Login failed")
     } finally {
-      setIsAuthenticating(false)
+      setIsLoading(false)
     }
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setIsAuthenticating(true)
+    setIsLoading(true)
 
     try {
-      // Call backend API to register with Openfort
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: registerEmail,
-          password: registerPassword,
-          name: registerName,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Registration failed")
+      // Filter out empty optional fields
+      const payload = {
+        email: registerData.email,
+        username: registerData.username,
+        password: registerData.password,
+        ...(registerData.firstName && { firstName: registerData.firstName }),
+        ...(registerData.lastName && { lastName: registerData.lastName }),
+        ...(registerData.phoneNumber && { phoneNumber: registerData.phoneNumber }),
       }
 
-      const data = await response.json()
+      const response = await authApi.register(payload)
+      
+      // Store tokens
+      localStorage.setItem("auth_token", response.accessToken)
+      localStorage.setItem("refresh_token", response.refreshToken)
+      
+      // Update store with user data
+      setUser(response.user)
+      
+      // If wallet is included in response, set it
+      if (response.wallet) {
+        setWallet(response.wallet)
+      }
 
-      // Set user in store
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-        walletAddress: data.wallet.address,
-      })
-
-      // Close dialog and redirect to dashboard
+      toast.success("Registration successful!")
       onOpenChange(false)
       router.push("/dashboard")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during registration")
+    } catch (error) {
+      console.error("Registration error:", error)
+      toast.error(error instanceof Error ? error.message : "Registration failed")
     } finally {
-      setIsAuthenticating(false)
+      setIsLoading(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-          <DialogTitle className="text-center">Welcome to Roomy</DialogTitle>
-          <DialogDescription className="text-center">
-            Create an account to spend smarter, together. Sign in or create an account to manage shared expenses with your roommates
+          <DialogTitle>Welcome to Roomy</DialogTitle>
+          <DialogDescription>
+            Sign in to your account or create a new one to get started.
           </DialogDescription>
         </DialogHeader>
-
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
-
           <TabsContent value="login">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="emailOrUsername">Email or Username</Label>
                 <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  id="emailOrUsername"
+                  type="text"
+                  placeholder="Enter your email or username"
+                  value={loginData.emailOrUsername}
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, emailOrUsername: e.target.value })
+                  }
                   required
-                  disabled={isAuthenticating}
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id="login-password"
+                  id="password"
                   type="password"
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  value={loginData.password}
+                  onChange={(e) =>
+                    setLoginData({ ...loginData, password: e.target.value })
+                  }
                   required
-                  disabled={isAuthenticating}
                 />
               </div>
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
-
-              <Button type="submit" className="w-full" disabled={isAuthenticating}>
-                {isAuthenticating ? (
-                  <>
-                    <Loader2 className="animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </TabsContent>
-
           <TabsContent value="register">
             <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-name">Name</Label>
-                <Input
-                  id="register-name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  required
-                  disabled={isAuthenticating}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="John"
+                    value={registerData.firstName}
+                    onChange={(e) =>
+                      setRegisterData({ ...registerData, firstName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={registerData.lastName}
+                    onChange={(e) =>
+                      setRegisterData({ ...registerData, lastName: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="register-email"
+                  id="email"
                   type="email"
-                  placeholder="you@example.com"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  value={registerData.email}
+                  onChange={(e) =>
+                    setRegisterData({ ...registerData, email: e.target.value })
+                  }
                   required
-                  disabled={isAuthenticating}
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="register-password">Password</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="register-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  id="username"
+                  type="text"
+                  placeholder="johndoe"
+                  value={registerData.username}
+                  onChange={(e) =>
+                    setRegisterData({ ...registerData, username: e.target.value })
+                  }
                   required
-                  disabled={isAuthenticating}
-                  minLength={8}
                 />
               </div>
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
-
-              <Button type="submit" className="w-full" disabled={isAuthenticating}>
-                {isAuthenticating ? (
-                  <>
-                    <Loader2 className="animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Create Account"
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="+1 (555) 123-4567"
+                  value={registerData.phoneNumber}
+                  onChange={(e) =>
+                    setRegisterData({ ...registerData, phoneNumber: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="registerPassword">Password</Label>
+                <Input
+                  id="registerPassword"
+                  type="password"
+                  placeholder="Create a strong password"
+                  value={registerData.password}
+                  onChange={(e) =>
+                    setRegisterData({ ...registerData, password: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
           </TabsContent>
         </Tabs>
-
-        <p className="text-xs text-center text-muted-foreground mt-4">
-          By continuing, you agree to create a smart wallet to manage shared expenses together
-        </p>
       </DialogContent>
     </Dialog>
   )

@@ -50,10 +50,8 @@ export default function DashboardPage() {
       return
     }
 
-    // Load mock data if not already loaded
+    // Load mock dashboard data without overriding authenticated user/wallet
     if (!currentGroup) {
-      setUser(mockUser)
-      setWallet(mockWallets[0])
       setCurrentGroup(mockGroup)
       setGroups(mockGroups)
       setGroupMembers(mockGroupMembers)
@@ -67,8 +65,6 @@ export default function DashboardPage() {
   }, [
     user, 
     currentGroup, 
-    setUser,
-    setWallet,
     setCurrentGroup, 
     setGroups,
     setGroupMembers,

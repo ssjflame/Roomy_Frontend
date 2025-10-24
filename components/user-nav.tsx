@@ -20,21 +20,18 @@ export function UserNav() {
 
   if (!user) return null
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" })
-
-      // Clear user state
-      setUser(null)
-      setWallet(null)
-      setCurrentGroup(null)
-      setProposals([])
-
-      // Redirect to home
-      router.push("/")
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
+  const handleLogout = () => {
+    // Clear authentication tokens
+    localStorage.removeItem("auth_token")
+    localStorage.removeItem("refresh_token")
+    
+    // Clear store state
+    setUser(null)
+    setWallet(null)
+    setCurrentGroup(null)
+    
+    // Redirect to home
+    router.push("/")
   }
 
   const getInitials = () => {
