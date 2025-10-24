@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useStore } from "@/lib/store"
 import { Home, Wallet, Vote, LayoutDashboard } from "lucide-react"
@@ -12,13 +12,21 @@ export default function HomePage() {
   const { user } = useStore()
   const [showAuthDialog, setShowAuthDialog] = useState(false)
 
+  useEffect(() => {
+    console.log("[v0] HomePage mounted")
+    console.log("[v0] User state:", user)
+  }, [user])
+
   const handleGetStarted = () => {
+    console.log("[v0] Get Started clicked, user:", user)
     if (user) {
       router.push("/dashboard")
     } else {
       setShowAuthDialog(true)
     }
   }
+
+  console.log("[v0] HomePage rendering")
 
   return (
     <div className="min-h-screen relative overflow-hidden">

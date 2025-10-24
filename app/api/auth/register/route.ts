@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import Openfort from "@openfort/openfort-js"
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,38 +8,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const openfort = new Openfort({
-      baseConfiguration: {
-        publishableKey: process.env.OPENFORT_SECRET_KEY || "",
-      },
-    })
+    // TODO: Replace with actual backend API call
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, password, name })
+    // })
+    // const data = await response.json()
+    // if (!response.ok) {
+    //   return NextResponse.json({ error: data.message }, { status: response.status })
+    // }
 
-    // Create player (user) in Openfort
-    const player = await openfort.createPlayer({
-      name: name || email.split("@")[0],
+    // Mock response for development
+    const mockUser = {
+      id: "user_" + Date.now(),
       email,
-    })
-
-    // Create embedded wallet for the player
-    const wallet = await openfort.createWallet({
-      playerId: player.id,
-      chainId: 80002, // Polygon Amoy testnet
-    })
-
-    // In production, you would also:
-    // 1. Hash and store the password securely
-    // 2. Send verification email
-    // 3. Create session token
+      name: name || email.split("@")[0],
+      walletAddress: "0x" + Math.random().toString(16).substring(2, 42),
+    }
 
     return NextResponse.json({
-      user: {
-        id: player.id,
-        email: player.email,
-      },
-      wallet: {
-        address: wallet.address,
-        chainId: wallet.chainId,
-      },
+      user: mockUser,
+      token: "mock_token_" + Date.now(),
     })
   } catch (error) {
     console.error("Registration error:", error)

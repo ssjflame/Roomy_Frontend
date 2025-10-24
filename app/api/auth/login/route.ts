@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import Openfort from "@openfort/openfort-js"
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,46 +8,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const openfort = new Openfort({
-      baseConfiguration: {
-        publishableKey: process.env.OPENFORT_SECRET_KEY || "",
-      },
-    })
+    // TODO: Replace with actual backend API call
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/login`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, password })
+    // })
+    // const data = await response.json()
+    // if (!response.ok) {
+    //   return NextResponse.json({ error: data.message }, { status: response.status })
+    // }
 
-    // Authenticate with Openfort
-    // Note: This is a simplified example. In production, you would:
-    // 1. Verify credentials against your database
-    // 2. Use Openfort's authentication methods
-    // 3. Create a session token
-    const authResult = await openfort.authenticateWithEmailPassword({
+    // Mock response for development
+    const mockUser = {
+      id: "user_" + Date.now(),
       email,
-      password,
-    })
-
-    if (!authResult.user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Get or create wallet for user
-    const wallets = await openfort.getWallets({ playerId: authResult.user.id })
-    let wallet = wallets[0]
-
-    if (!wallet) {
-      wallet = await openfort.createWallet({
-        playerId: authResult.user.id,
-        chainId: 80002, // Polygon Amoy testnet
-      })
+      name: email.split("@")[0],
+      walletAddress: "0x" + Math.random().toString(16).substring(2, 42),
     }
 
     return NextResponse.json({
-      user: {
-        id: authResult.user.id,
-        email: authResult.user.email,
-      },
-      wallet: {
-        address: wallet.address,
-        chainId: wallet.chainId,
-      },
+      user: mockUser,
+      token: "mock_token_" + Date.now(),
     })
   } catch (error) {
     console.error("Login error:", error)
