@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Soft brown, homey color palette */
+  --background: oklch(0.98 0.01 45); /* Warm cream */
+  --foreground: oklch(0.25 0.02 35); /* Rich brown */
+  --card: oklch(0.99 0.005 50); /* Slightly warmer white */
+  --card-foreground: oklch(0.25 0.02 35); /* Rich brown */
+  --popover: oklch(0.99 0.005 50);
+  --popover-foreground: oklch(0.25 0.02 35);
+  --primary: oklch(0.45 0.08 35); /* Warm brown */
+  --primary-foreground: oklch(0.98 0.01 45); /* Cream */
+  --secondary: oklch(0.92 0.02 40); /* Light warm beige */
+  --secondary-foreground: oklch(0.35 0.03 30); /* Darker brown */
+  --muted: oklch(0.92 0.02 40);
+  --muted-foreground: oklch(0.55 0.03 35); /* Medium brown */
+  --accent: oklch(0.65 0.06 25); /* Warm accent brown */
+  --accent-foreground: oklch(0.98 0.01 45);
+  --destructive: oklch(0.55 0.15 15); /* Warm red-brown */
+  --destructive-foreground: oklch(0.98 0.01 45);
+  --border: oklch(0.88 0.02 40); /* Soft brown border */
+  --input: oklch(0.88 0.02 40);
+  --ring: oklch(0.45 0.08 35); /* Primary brown for focus */
+  --chart-1: oklch(0.45 0.08 35); /* Primary brown */
+  --chart-2: oklch(0.55 0.06 25); /* Accent brown */
+  --chart-3: oklch(0.65 0.05 45); /* Lighter brown */
+  --chart-4: oklch(0.35 0.05 15); /* Darker brown */
+  --chart-5: oklch(0.75 0.04 55); /* Light warm brown */
+  --radius: 0.75rem; /* Slightly more rounded for homey feel */
+  --sidebar: oklch(0.95 0.015 40); /* Warm sidebar */
+  --sidebar-foreground: oklch(0.25 0.02 35);
+  --sidebar-primary: oklch(0.45 0.08 35);
+  --sidebar-primary-foreground: oklch(0.98 0.01 45);
+  --sidebar-accent: oklch(0.92 0.02 40);
+  --sidebar-accent-foreground: oklch(0.35 0.03 30);
+  --sidebar-border: oklch(0.88 0.02 40);
+  --sidebar-ring: oklch(0.45 0.08 35);
+}
+
+.dark {
+  /* Dark mode with warm brown tones */
+  --background: oklch(0.12 0.02 25); /* Very dark warm brown */
+  --foreground: oklch(0.92 0.01 45); /* Warm cream text */
+  --card: oklch(0.15 0.02 30); /* Dark warm brown card */
+  --card-foreground: oklch(0.92 0.01 45);
+  --popover: oklch(0.15 0.02 30);
+  --popover-foreground: oklch(0.92 0.01 45);
+  --primary: oklch(0.65 0.06 25); /* Warm accent brown */
+  --primary-foreground: oklch(0.12 0.02 25); /* Dark background */
+  --secondary: oklch(0.22 0.02 30); /* Medium dark brown */
+  --secondary-foreground: oklch(0.92 0.01 45);
+  --muted: oklch(0.22 0.02 30);
+  --muted-foreground: oklch(0.65 0.03 35); /* Medium warm brown */
+  --accent: oklch(0.55 0.05 20); /* Warm accent */
+  --accent-foreground: oklch(0.92 0.01 45);
+  --destructive: oklch(0.55 0.15 15); /* Warm red-brown */
+  --destructive-foreground: oklch(0.92 0.01 45);
+  --border: oklch(0.25 0.02 30); /* Dark brown border */
+  --input: oklch(0.25 0.02 30);
+  --ring: oklch(0.65 0.06 25); /* Primary brown for focus */
+  --chart-1: oklch(0.65 0.06 25); /* Primary brown */
+  --chart-2: oklch(0.55 0.05 20); /* Accent brown */
+  --chart-3: oklch(0.75 0.04 30); /* Lighter brown */
+  --chart-4: oklch(0.45 0.05 15); /* Darker brown */
+  --chart-5: oklch(0.85 0.03 40); /* Light warm brown */
+  --sidebar: oklch(0.18 0.02 28); /* Dark warm sidebar */
+  --sidebar-foreground: oklch(0.92 0.01 45);
+  --sidebar-primary: oklch(0.65 0.06 25);
+  --sidebar-primary-foreground: oklch(0.12 0.02 25);
+  --sidebar-accent: oklch(0.22 0.02 30);
+  --sidebar-accent-foreground: oklch(0.92 0.01 45);
+  --sidebar-border: oklch(0.25 0.02 30);
+  --sidebar-ring: oklch(0.65 0.06 25);
+}
+
+@theme inline {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Warm, homey brown theme */
+  --color-background: #faf8f5; /* Warm cream */
+  --color-foreground: #3c2a1a; /* Rich brown */
+
+  --color-card: #fefcf9; /* Slightly warmer white */
+  --color-card-foreground: #3c2a1a; /* Rich brown */
+
+  --color-primary: #8b5a3c; /* Warm brown */
+  --color-primary-foreground: #faf8f5; /* Cream */
+
+  --color-secondary: #e8ddd4; /* Light warm beige */
+  --color-secondary-foreground: #5a3f2a; /* Darker brown */
+
+  --color-muted: #e8ddd4; /* Light warm beige */
+  --color-muted-foreground: #8b6f47; /* Medium brown */
+
+  --color-accent: #a67c52; /* Warm accent brown */
+  --color-accent-foreground: #faf8f5; /* Cream */
+
+  --color-destructive: #b85450; /* Warm red-brown */
+  --color-destructive-foreground: #faf8f5; /* Cream */
+
+  --color-border: #d4c4b0; /* Soft brown border */
+  --color-input: #d4c4b0; /* Soft brown input */
+  --color-ring: #8b5a3c; /* Primary brown for focus */
+
+  --radius: 0.75rem; /* Slightly more rounded for homey feel */
+
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
