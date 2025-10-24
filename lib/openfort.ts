@@ -1,14 +1,3 @@
-import Openfort from "@openfort/openfort-js"
-
-const OPENFORT_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY || "pk_test_..."
-
-// Initialize Openfort client
-export const openfort = new Openfort({
-  baseConfiguration: {
-    publishableKey: OPENFORT_PUBLISHABLE_KEY,
-  },
-})
-
 // Types for Openfort user and wallet
 export interface OpenfortUser {
   id: string

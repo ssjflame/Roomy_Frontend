@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { openfort } from "@/lib/openfort"
+import Openfort from "@openfort/openfort-js"
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +8,12 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
+
+    const openfort = new Openfort({
+      baseConfiguration: {
+        publishableKey: process.env.OPENFORT_SECRET_KEY || "",
+      },
+    })
 
     // Create player (user) in Openfort
     const player = await openfort.createPlayer({
