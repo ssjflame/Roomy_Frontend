@@ -74,12 +74,19 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
       headers.set("Authorization", `Bearer ${authToken}`)
     }
 
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...options,
-      headers,
-    })
-
-    return response
+    try {
+      const response = await fetch(`${API_BASE_URL}${url}`, {
+        ...options,
+        headers,
+      })
+      return response
+    } catch (error) {
+      const err = new Error("Network request failed")
+      ;(err as any).cause = error
+      ;(err as any).isNetworkError = true
+      ;(err as any).url = `${API_BASE_URL}${url}`
+      throw err
+    }
   }
 
   // First attempt
@@ -97,7 +104,10 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const result: ApiResponse = await response.json()
 
   if (!result.success) {
-    throw new Error(result.error || "Request failed")
+    const err = new Error(result.error || "Request failed")
+    ;(err as any).errors = result.errors
+    ;(err as any).status = response.status
+    throw err
   }
 
   return result
@@ -110,18 +120,36 @@ async function fetchApi(url: string, options: RequestInit = {}) {
     ...options.headers,
   }
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    ...options,
-    headers,
-  })
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      ...options,
+      headers,
+    })
 
-  const result: ApiResponse = await response.json()
+    let result: ApiResponse
+    try {
+      result = await response.json()
+    } catch (jsonError) {
+      const err = new Error("Invalid JSON response")
+      ;(err as any).cause = jsonError
+      ;(err as any).status = response.status
+      throw err
+    }
 
-  if (!result.success) {
-    throw new Error(result.error || "Request failed")
+    if (!result.success) {
+      const err = new Error(result.error || "Request failed")
+      ;(err as any).errors = result.errors
+      ;(err as any).status = response.status
+      throw err
+    }
+
+    return result
+  } catch (error) {
+    const err = new Error("Network request failed")
+    ;(err as any).cause = error
+    ;(err as any).url = `${API_BASE_URL}${url}`
+    throw err
   }
-
-  return result
 }
 
 // ============================================================================
@@ -374,10 +402,10 @@ export const proposalsApi = {
   /**
    * Vote on a proposal
    */
-  async vote(proposalId: string, data: { voteType: "FOR" | "AGAINST" | "ABSTAIN"; comment?: string }): Promise<any> {
+  async vote(proposalId: string, payload: { isApproved: boolean; comment?: string }): Promise<any> {
     const response = await fetchWithAuth(`/proposals/${proposalId}/votes`, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
     return response.data as any
   },

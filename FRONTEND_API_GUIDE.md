@@ -1,222 +1,245 @@
-Roomy API – Postman Endpoints Guide
-This document lists all existing API endpoints, their inputs, auth requirements, and sample requests tailored for Postman testing.
+# Frontend API Integration Guide
 
-Base Setup
-Base URL: set a Postman variable {{baseUrl}} (e.g., http://localhost:3000)
-Auth header: set {{accessToken}} in Postman after login/registration
-Header: Authorization: Bearer {{accessToken}}
-Content-Type: application/json for all POST/PATCH requests
-Common variables you may define: {{groupId}}, {{billId}}, {{proposalId}}, {{transactionId}}, {{userId}}
-Response Format
-Success: { success: true, data: <any>, message?: string }
-Error: { success: false, error: string }
-Validation errors: { success: false, error: 'Validation failed', details: { field: [messages...] } }
-Health
-GET {{baseUrl}}/health
-No auth
-Returns { status: 'ok', environment, timestamp }
-Authentication (/api/auth)
-All request bodies are JSON.
+This document outlines, in detail, the backend endpoints and data contracts implemented so far. Use this as the source of truth while wiring up the frontend.
 
-POST {{baseUrl}}/api/auth/register
-Body: { email, username, password, firstName?, lastName? }
-Returns: { user, accessToken, refreshToken }
-Sample body:
-POST {{baseUrl}}/api/auth/login
-Body: { emailOrUsername, password }
-Returns: { user, accessToken, refreshToken }
-Sample body:
-POST {{baseUrl}}/api/auth/refresh
-Body: { refreshToken }
-Returns: { accessToken } (and may include refreshToken depending on service)
-Sample body:
-POST {{baseUrl}}/api/auth/logout
-Body: { refreshToken }
-Revokes refresh token; returns success
-Sample body:
-POST {{baseUrl}}/api/auth/logout-all
+## Base URL and Auth
+- Base API: `http://<server>/api`
+- Auth header: `Authorization: Bearer <accessToken>` (JWT)
+- CORS: Server allows `origin` from `config.frontendUrl` with credentials
 
-Auth required
-Logs out from all devices for the current user
-Sample: no body (Authorization header required)
-POST {{baseUrl}}/api/auth/forgot-password
+## Response Format
+All endpoints return a standardized envelope:
+- Success:
+  ```json
+  { "success": true, "message": "optional", "data": <payload> }
+  ```
+- Error:
+  ```json
+  { "success": false, "error": "message", "errors": { "field": ["msg"] } }
+  ```
+- Common status codes: `200`, `201`, `401`, `403`, `404`, `422`, `500`
 
-Body: { email }
-In development, may return { resetToken }
-Sample body:
-POST {{baseUrl}}/api/auth/reset-password
-Body: { token, newPassword }
-Sample body:
-POST {{baseUrl}}/api/auth/change-password
-Auth required
-Body: { currentPassword, newPassword }
-Sample body:
-GET {{baseUrl}}/api/auth/me
-Auth required
-Returns: { user, wallet }
-Users (/api/users)
-All endpoints require auth.
+## Access Control
+- `authenticate` required for all routes below.
+- `requireGroupMembership('groupId')` for group-scoped endpoints.
+- Certain mutations (bill update/delete, proposal execute) may require creator/admin; server enforces.
 
-GET {{baseUrl}}/api/users/profile
+---
 
-Note: currently returns the user’s groups (wired to getUserGroups). Use /api/auth/me for profile.
-Sample: no body
-PUT {{baseUrl}}/api/users/profile
+## Bills
+Routes are mounted at `/api/bills` and `/api/groups/:groupId/bills`.
 
-Body: { firstName?, lastName?, phoneNumber?, avatarUrl? }
-Sample body:
-DELETE {{baseUrl}}/api/users/account
+### Create Bill
+- Method/Path: `POST /api/bills`
+- Access: Authenticated and member of the target group (`groupId` in body)
+- Body:
+  ```json
+  {
+    "groupId": "uuid",
+    "title": "string",
+    "description": "string?",
+    "totalAmount": 123.45,
+    "currency": "USDC|ETH|MATIC?", // default USDC
+    "dueDate": "ISO8601?",
+    "payeeAddress": "0x...", // EVM address
+    "categoryId": "uuid?",
+    "attachmentUrl": "url?",
+    "items": [{ "description": "string", "amount": 10.5, "quantity": 1 }]? 
+  }
+  ```
+- Validation highlights: `groupId` UUID, `title` 1–200 chars, `totalAmount` > 0, `payeeAddress` EVM address.
+- Response `201`:
+  - `data`: Bill object including items and basic relations.
 
-Deletes current user account
-Sample: no body
-GET {{baseUrl}}/api/users/{{userId}}
+### Get Current User Bills
+- Method/Path: `GET /api/bills`
+- Query: `page?` (int ≥1), `limit?` (1–100, default 20)
+- Response `200`:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "bills": [ ... ],
+      "pagination": { "page": 1, "limit": 20, "total": 42, "totalPages": 3 }
+    }
+  }
+  ```
 
-Get a user by ID
-Sample: no body
-GET {{baseUrl}}/api/users/groups
+### Get Group Bills
+- Method/Path: `GET /api/groups/:groupId/bills`
+- Access: Group membership
+- Params: `groupId` UUID
+- Query: `page?`, `limit?`
+- Response `200`: same pagination envelope as above with `bills`.
 
-Returns current user’s groups
-Sample: no body
-GET {{baseUrl}}/api/users/wallet
+### Get Bill By ID
+- Method/Path: `GET /api/bills/:billId`
+- Params: `billId` UUID
+- Response `200`:
+  - `data`: Bill with:
+    - `items: BillItem[]`
+    - `creator: { id, username, email }`
+    - `category: { id, name, color }?`
+    - `group: { id, name }`
+    - `proposal` (if exists) with `votes` and basic voter info
+    - `transactions` including `sender { id, username }`
 
-Returns current user’s wallet
-Sample: no body
-GET {{baseUrl}}/api/users/notifications
+### Update Bill
+- Method/Path: `PATCH /api/bills/:billId`
+- Access: Bill creator or group admin
+- Body: Any subset of fields from Create (plus optional `status` among `DRAFT|PROPOSED|APPROVED|REJECTED|PAID|CANCELLED`). If `items` provided, server replaces all existing items.
+- Response `200`: updated Bill with items and selected relations.
 
-Returns notifications for current user
-Sample: no body
-PUT {{baseUrl}}/api/users/notifications/{{notificationId}}/read
+### Delete Bill
+- Method/Path: `DELETE /api/bills/:billId`
+- Access: Bill creator or group admin
+- Response `200`: `data: null`, `message: "Bill deleted successfully"`
 
-Marks a notification as read
-Sample: no body
-PUT {{baseUrl}}/api/users/notifications/read-all
+---
 
-Marks all notifications as read
-Sample: no body
-Groups (/api/groups)
-All endpoints require auth.
+## Proposals
+Routes are mounted at `/api/proposals` and `/api/groups/:groupId/proposals`.
 
-POST {{baseUrl}}/api/groups
-Body: { name, votingThreshold?, memberEmails?: string[], smartAccountAddress? }
-Sample body:
-GET {{baseUrl}}/api/groups
+### Create Proposal
+- Method/Path: `POST /api/proposals`
+- Access: Authenticated; must be a member of the bill's group
+- Body:
+  ```json
+  {
+    "billId": "uuid",
+    "title": "string",
+    "description": "string?",
+    "votingDeadline": "ISO8601" // required
+  }
+  ```
+- Behavior: Verifies bill exists; sets bill status to `PROPOSED`.
+- Response `201`: Proposal object.
 
-Returns current user’s groups
-Sample: no body
-GET {{baseUrl}}/api/groups/{{groupId}}
+### Get Group Proposals
+- Method/Path: `GET /api/groups/:groupId/proposals`
+- Access: Group membership
+- Params: `groupId` UUID
+- Response `200`: array of proposals for the group.
 
-Requires group membership
-Returns group details
-Sample: no body
-POST {{baseUrl}}/api/groups/{{groupId}}/invite
+### Get Proposal By ID
+- Method/Path: `GET /api/proposals/:proposalId`
+- Params: `proposalId` UUID
+- Response `200`: proposal details with vote tallies.
 
-Requires ADMIN role in group
-Body: { emails: string[] }
-Sample body:
-POST {{baseUrl}}/api/groups/{{groupId}}/join
-Body: { token } (invite token)
-Sample body:
-PUT {{baseUrl}}/api/groups/{{groupId}}
-Requires ADMIN role (placeholder route)
-Sample body (example placeholder):
-DELETE {{baseUrl}}/api/groups/{{groupId}}
+### Vote on Proposal
+- Method/Path: `POST /api/proposals/:proposalId/votes`
+- Access: Group membership
+- Body:
+  ```json
+  { "isApproved": true, "comment": "string?" }
+  ```
+- Behavior: Prevents double voting; may auto-approve if group `votingThreshold` met. Maps `isApproved=true` to FOR and `false` to AGAINST.
+- Response `200`: updated proposal with tallies.
 
-Requires ADMIN role (placeholder route)
-Sample: no body
-GET {{baseUrl}}/api/groups/{{groupId}}/members
+### Execute Proposal
+- Method/Path: `POST /api/proposals/:proposalId/execute`
+- Access: Creator or group admin
+- Behavior: Marks proposal executed; in future may trigger on-chain flows.
+- Response `200`: executed proposal.
 
-Requires group membership (placeholder route)
-Sample: no body
-POST {{baseUrl}}/api/groups/{{groupId}}/members
+---
 
-Requires ADMIN role (placeholder route)
-Sample body (example placeholder):
-PUT {{baseUrl}}/api/groups/{{groupId}}/members/{{memberId}}
-Requires ADMIN role (placeholder route)
-Sample body (example placeholder):
-DELETE {{baseUrl}}/api/groups/{{groupId}}/members/{{memberId}}
+## Transactions
+Routes are mounted at `/api/transactions` and `/api/groups/:groupId/transactions`.
 
-Requires ADMIN role (placeholder route)
-Sample: no body
-GET {{baseUrl}}/api/groups/{{groupId}}/bills
+### Create Transaction
+- Method/Path: `POST /api/transactions`
+- Access: Authenticated; must be member of the relevant group
+- Body:
+  ```json
+  {
+    "billId": "uuid?",     // if provided, group resolves from bill
+    "groupId": "uuid?",    // required if billId not provided
+    "receiverId": "uuid?", // optional user receiver
+    "amount": 120.5,
+    "currency": "USDC|ETH|MATIC?", // default USDC
+    "type": "BILL_PAYMENT|DEPOSIT|WITHDRAWAL|REFUND|TRANSFER",
+    "description": "string?",
+    "metadata": { "any": "json?" }
+  }
+  ```
+- Behavior:
+  - If `billId` present, backend loads bill and uses its `groupId`.
+  - Validates active membership; records `senderId` as the authenticated user.
+  - Stores `metadata` as a JSON string.
+- Response `201`: Transaction object.
 
-Requires group membership
-Query: page?, limit?
-Sample: no body
-GET {{baseUrl}}/api/groups/{{groupId}}/transactions
+### Get Transaction By ID
+- Method/Path: `GET /api/transactions/:transactionId`
+- Params: `transactionId` UUID
+- Response `200`: Transaction details.
 
-Requires group membership
-Query: page?, limit?
-Sample: no body
-GET {{baseUrl}}/api/groups/{{groupId}}/proposals
+### Get Group Transactions
+- Method/Path: `GET /api/groups/:groupId/transactions`
+- Access: Group membership
+- Params: `groupId` UUID
+- Query: `page?` (≥1), `limit?` (1–100, default 20)
+- Response `200`:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "transactions": [ ... ],
+      "pagination": { "page": 1, "limit": 20, "total": 42, "totalPages": 3 }
+    }
+  }
+  ```
 
-Requires group membership
-Sample: no body
-Bills (/api/bills)
-All endpoints require auth.
+---
 
-POST {{baseUrl}}/api/bills
-Body: { groupId, title, description?, totalAmount, currency?, dueDate?, payeeAddress, categoryId?, attachmentUrl?, items?: [{ description, amount, quantity? }] }
-Requires membership in the specified groupId
-Sample body:
-GET {{baseUrl}}/api/bills
+## Groups (selected)
+Routes impacted/added under `/api/groups`:
+- `GET /api/groups/:groupId` — group details (membership required)
+- `POST /api/groups/:groupId/invite` — invites (admin only)
+- `POST /api/groups/:groupId/join` — join via token
+- `GET /api/groups/:groupId/bills` — group bills (with pagination)
+- `GET /api/groups/:groupId/proposals` — group proposals
+- `GET /api/groups/:groupId/transactions` — group transactions (with pagination)
 
-Query: page?, limit?
-Returns user’s bills across their groups
-Sample: no body
-GET {{baseUrl}}/api/bills/{{billId}}
+---
 
-Returns a bill by ID
-Sample: no body
-PATCH {{baseUrl}}/api/bills/{{billId}}
+## Validation Rules Summary
+- UUIDs: `groupId`, `billId`, `proposalId`, `transactionId`, `categoryId`, `receiverId`
+- Currency: one of `USDC`, `ETH`, `MATIC`
+- EVM address: `payeeAddress` must match `^0x[a-fA-F0-9]{40}$`
+- Amounts: positive floats; quantities: positive integers
+- Date strings: ISO 8601
 
-Body: any updatable bill fields (same shape as create; all optional)
-Sample body (minimal update):
-DELETE {{baseUrl}}/api/bills/{{billId}}
+## Integration Notes
+- Always include the Bearer token header. Most endpoints return `401` if missing or invalid.
+- Handle `422` for validation failures; use `errors` map to surface field-level messages.
+- Paginated endpoints include `pagination` with `totalPages`; default `limit` is 20.
+- Bill updates with `items` will replace all existing items.
+- Transactions record `senderId`; `receiverId` is optional for transfers/refunds.
 
-Deletes the bill
-Sample: no body
-GET {{baseUrl}}/api/bills/{{billId}}/transactions
+## Sample cURL
+```bash
+# Create a bill
+curl -X POST $BASE/api/bills \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "groupId": "<group-uuid>",
+    "title": "June Rent",
+    "totalAmount": 1200,
+    "payeeAddress": "0x0123456789abcdef0123456789abcdef01234567"
+  }'
 
-Placeholder route returns success message
-Sample: no body
-Proposals (/api/proposals)
-All endpoints require auth.
+# Create a transaction (bill payment)
+curl -X POST $BASE/api/transactions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{
+    "billId": "<bill-uuid>",
+    "amount": 400,
+    "type": "BILL_PAYMENT",
+    "description": "Alice share"
+  }'
 
-POST {{baseUrl}}/api/proposals
-Body: { billId, title, description?, votingDeadline }
-Creates proposal from a DRAFT bill; requires membership of bill’s group
-Sample body:
-GET {{baseUrl}}/api/proposals/groups/{{groupId}}
-
-Requires group membership
-Returns proposals for the group
-Sample: no body
-GET {{baseUrl}}/api/proposals/{{proposalId}}
-
-Returns proposal by ID (including votes)
-Sample: no body
-POST {{baseUrl}}/api/proposals/{{proposalId}}/votes
-
-Body: { voteType: "FOR"|"AGAINST"|"ABSTAIN", comment? }
-Records a vote; prevents duplicate votes per user
-Sample body:
-POST {{baseUrl}}/api/proposals/{{proposalId}}/execute
-Executes an approved proposal (marks executed)
-Sample: no body
-Transactions (/api/transactions)
-All endpoints require auth.
-
-POST {{baseUrl}}/api/transactions
-Body: { billId?, groupId?, receiverId?, amount, currency?, description?, type: "BILL_PAYMENT"|"DEPOSIT"|"WITHDRAWAL"|"REFUND"|"TRANSFER", metadata? }
-If only billId provided, backend resolves groupId from bill
-Records sender as current user; sets status PENDING
-Sample body:
-GET {{baseUrl}}/api/transactions/{{transactionId}}
-Returns transaction by ID
-Sample: no body
-Testing Tips (Postman)
-Create a Postman environment with variables: baseUrl, accessToken, groupId, billId, proposalId, transactionId.
-After registering/logging in, set accessToken from response to use in protected requests.
-Use page and limit when listing bills and transactions for pagination.
-For group-restricted routes, ensure the test user is a member of the group.
+# Get group transactions (page 2)
+curl -X GET "$BASE/api/groups/<group-uuid>/transactions?page=2&limit=25" \
+  -H "Authorization: Bearer $TOKEN"
+```

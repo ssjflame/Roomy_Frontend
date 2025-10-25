@@ -10,6 +10,7 @@ import { format } from "date-fns"
 import type { Proposal, ProposalStatus } from "@/lib/store"
 import { CreateProposalDialog } from "./create-proposal-dialog"
 import { ProposalDetailDialog } from "./proposal-detail-dialog"
+import { proposalsApi } from "@/lib/api"
 
 export function ProposalsList() {
   const { proposals, voteOnProposal, user } = useStore()
@@ -39,9 +40,13 @@ export function ProposalsList() {
     return status.charAt(0) + status.slice(1).toLowerCase()
   }
 
-  const handleVote = (proposalId: string, vote: "FOR" | "AGAINST") => {
-    if (user) {
-      voteOnProposal(proposalId, vote, user.id)
+  const handleVote = async (proposalId: string, vote: "approve" | "reject") => {
+    if (!user) return
+    try {
+      await proposalsApi.vote(proposalId, { isApproved: vote === "approve" })
+      voteOnProposal(proposalId, vote === "approve" ? "FOR" : "AGAINST", user.id)
+    } catch (err) {
+      console.error("Failed to vote:", err)
     }
   }
 

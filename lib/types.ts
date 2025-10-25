@@ -67,40 +67,81 @@ export interface GroupMember {
   user: User
 }
 
+// Bill items
+export interface BillItem {
+  id: string
+  description: string
+  amount: number
+  quantity: number
+}
+
 // Bill types matching backend schema
 export interface Bill {
   id: string
   groupId: string
+  createdBy: string
   title: string
   description?: string
-  amount: number
-  createdBy: string
-  status: "pending" | "approved" | "rejected" | "paid"
+  totalAmount: number
+  currency: "USDC" | "ETH" | "MATIC"
   dueDate?: string
+  payeeAddress: string
+  categoryId?: string
+  attachmentUrl?: string
+  status: "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "PAID" | "CANCELLED"
   createdAt: string
   updatedAt: string
-  votes: Vote[]
-  creator: User
+  items?: BillItem[]
+  creator?: { id: string; username: string; email: string }
+  category?: { id: string; name: string; color?: string }
+  group?: { id: string; name: string }
+  proposal?: Proposal
+  transactions?: Transaction[]
 }
 
-export interface Vote {
+// Proposals & votes
+export interface Proposal {
   id: string
   billId: string
-  userId: string
-  vote: "approve" | "reject"
+  groupId: string
+  createdBy: string
+  title: string
+  description?: string
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXECUTED" | "EXPIRED" | "CANCELLED"
+  votesFor: number
+  votesAgainst: number
+  votesAbstain: number
+  votingDeadline: string
+  executedAt?: string
   createdAt: string
-  user: User
+  updatedAt: string
+  votes?: ProposalVote[]
+}
+
+export interface ProposalVote {
+  id: string
+  proposalId: string
+  userId: string
+  voteType: "FOR" | "AGAINST" | "ABSTAIN"
+  comment?: string
+  votedAt: string
+  voter?: { id: string; username: string; email: string }
 }
 
 // Transaction types matching backend schema
 export interface Transaction {
   id: string
-  groupId: string
   billId?: string
+  groupId?: string
+  senderId?: string
+  receiverId?: string
   amount: number
-  type: "deposit" | "withdrawal" | "payment"
-  status: "pending" | "completed" | "failed"
-  transactionHash?: string
+  currency: "USDC" | "ETH" | "MATIC"
+  txHash?: string
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED"
+  type: "BILL_PAYMENT" | "DEPOSIT" | "WITHDRAWAL" | "REFUND" | "TRANSFER"
+  description?: string
+  metadata?: string
   createdAt: string
   updatedAt: string
 }
@@ -143,11 +184,16 @@ export interface CreateBillRequest {
   groupId: string
   title: string
   description?: string
-  amount: number
+  totalAmount: number
+  currency?: "USDC" | "ETH" | "MATIC"
   dueDate?: string
+  payeeAddress: string
+  categoryId?: string
+  attachmentUrl?: string
+  items?: { description: string; amount: number; quantity?: number }[]
 }
 
 export interface VoteRequest {
-  billId: string
-  vote: "approve" | "reject"
+  isApproved: boolean
+  comment?: string
 }
