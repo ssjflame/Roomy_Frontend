@@ -54,12 +54,24 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       localStorage.setItem("auth_token", response.accessToken)
       localStorage.setItem("refresh_token", response.refreshToken)
       
-      // Update store with user data
-      setUser(response.user)
+      // Update store with user data (provide defaults for missing properties)
+      setUser({
+        ...response.user,
+        isEmailVerified: response.user.isEmailVerified ?? true,
+        avatarUrl: response.user.avatarUrl ?? undefined,
+        lastLoginAt: response.user.lastLoginAt ?? new Date().toISOString()
+      })
       
-      // If wallet is included in response, set it
+      // Ensure wallet provisioning via session (register/login don’t return wallet)
       if (response.wallet) {
         setWallet(response.wallet)
+      } else {
+        try {
+          const { wallet } = await authApi.session()
+          if (wallet) setWallet(wallet)
+        } catch (e) {
+          console.warn("Wallet session provisioning failed:", e)
+        }
       }
 
       toast.success("Login successful!")
@@ -94,12 +106,24 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       localStorage.setItem("auth_token", response.accessToken)
       localStorage.setItem("refresh_token", response.refreshToken)
       
-      // Update store with user data
-      setUser(response.user)
+      // Update store with user data (provide defaults for missing properties)
+      setUser({
+        ...response.user,
+        isEmailVerified: response.user.isEmailVerified ?? true,
+        avatarUrl: response.user.avatarUrl ?? undefined,
+        lastLoginAt: response.user.lastLoginAt ?? new Date().toISOString()
+      })
       
-      // If wallet is included in response, set it
+      // Ensure wallet provisioning via session after registration
       if (response.wallet) {
         setWallet(response.wallet)
+      } else {
+        try {
+          const { wallet } = await authApi.session()
+          if (wallet) setWallet(wallet)
+        } catch (e) {
+          console.warn("Wallet session provisioning failed:", e)
+        }
       }
 
       toast.success("Registration successful!")

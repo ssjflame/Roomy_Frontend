@@ -16,6 +16,9 @@ export interface User {
   lastName?: string
   phoneNumber?: string
   walletAddress?: string
+  avatarUrl?: string
+  isEmailVerified: boolean
+  lastLoginAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -133,6 +136,7 @@ export interface ChangePasswordRequest {
 export interface CreateGroupRequest {
   name: string
   description?: string
+  smartAccountAddress?: string
 }
 
 export interface CreateBillRequest {

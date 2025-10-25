@@ -257,7 +257,7 @@ export default function TransactionsPage() {
                           </div>
                           <Button variant="ghost" size="sm" asChild>
                             <a 
-                              href={`https://amoy.polygonscan.com/tx/${transaction.txHash}`}
+                              href={`https://sepolia.arbiscan.io/tx/${transaction.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useStore } from "@/lib/store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,10 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Users, Wallet, Settings, TrendingUp } from "lucide-react"
 import { format } from "date-fns"
 import type { Group } from "@/lib/store"
+import { CreateGroupDialog } from "@/components/create-group-dialog"
 
 export default function GroupsPage() {
   const router = useRouter()
   const { user, groups, groupMembers, currentGroup, setCurrentGroup } = useStore()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -55,7 +57,7 @@ export default function GroupsPage() {
                 Manage your expense sharing groups
               </p>
             </div>
-            <Button>
+            <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Group
             </Button>
@@ -168,7 +170,7 @@ export default function GroupsPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Create your first group to start managing shared expenses
                 </p>
-                <Button>
+                <Button onClick={() => setIsCreateOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Group
                 </Button>
@@ -177,6 +179,9 @@ export default function GroupsPage() {
           </Card>
         )}
       </main>
+
+      {/* Create Group Dialog */}
+      <CreateGroupDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   )
 }

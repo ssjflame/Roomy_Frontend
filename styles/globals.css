@@ -75,7 +75,7 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
+  --font-sans: 'Sora', 'Plus Jakarta Sans';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -123,3 +123,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Smooth accordion animations for Radix accordion used by shadcn */
+@keyframes accordion-down {
+  from { height: 0 }
+  to { height: var(--radix-accordion-content-height) }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height) }
+  to { height: 0 }
+}
+.accordion-content[data-state='open'] { animation: accordion-down 0.2s ease-out; }
+.accordion-content[data-state='closed'] { animation: accordion-up 0.2s ease-out; }
+/* Rotate chevron on open for trigger */
+.accordion-trigger[data-state='open'] svg { transform: rotate(180deg); }

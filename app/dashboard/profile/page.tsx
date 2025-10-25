@@ -216,7 +216,7 @@ export default function ProfilePage() {
                             </Button>
                             <Button variant="outline" size="icon" asChild>
                               <a
-                                href={`https://amoy.polygonscan.com/address/${wallet.address}`}
+                                href={`https://sepolia.arbiscan.io/address/${wallet.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
@@ -257,7 +257,7 @@ export default function ProfilePage() {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">Network</Label>
-                            <div className="text-sm font-medium">Polygon Amoy</div>
+                            <div className="text-sm font-medium">Arbitrum Sepolia</div>
                           </div>
                         </div>
 

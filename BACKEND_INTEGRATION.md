@@ -4,7 +4,7 @@ This document explains how to connect the Roomy frontend to the backend API.
 
 ## Current Status
 
-The frontend is currently using **mock data** and is ready to be connected to the backend. All API calls are centralized in `lib/api.ts` with TODO comments indicating where to uncomment the real backend calls.
+The frontend is integrated with the backend via `lib/api.ts`. Ensure `NEXT_PUBLIC_API_URL` points to your backend.
 
 ## Backend Repository
 
@@ -72,11 +72,9 @@ Simply uncomment these lines and remove the mock response below them.
 4. Check that the JWT token is stored in localStorage
 5. Verify that authenticated requests include the token
 
-### 4. Update Mock Data
+### 4. Cleanup
 
-Once the backend is connected, you can remove:
-- `lib/mock-data.ts` (if not needed)
-- Mock responses in `lib/api.ts`
+Mock data has been removed. API calls now drive all data.
 
 ### 5. Handle Errors
 
@@ -100,10 +98,9 @@ All API types are defined in `lib/types.ts` and match the backend Prisma schema.
 
 ## Testing
 
-Before connecting to the real backend:
-1. The app works with mock data
-2. All UI flows are functional
-3. State management is working
+Pre-checks:
+1. All UI flows are functional
+2. State management is working
 
 After connecting to the backend:
 1. Test all CRUD operations
@@ -116,4 +113,4 @@ After connecting to the backend:
 - The frontend uses localStorage for token storage (consider httpOnly cookies for production)
 - All API calls go through the centralized `lib/api.ts` service layer
 - The Zustand store (`lib/store.ts`) manages client-side state
-- Mock data is used until backend is connected
+- Data is provided by backend via `lib/api.ts`

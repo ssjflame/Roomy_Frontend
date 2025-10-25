@@ -8,7 +8,7 @@ export function StatsOverview() {
   const { proposals, currentGroup, wallet } = useStore()
 
   // Calculate group balance from wallet or default to 2450.50 for demo
-  const groupBalance = wallet?.balance || 2450.50
+  const groupBalance = wallet?.balance ?? 0
 
   const stats = [
     {

@@ -68,13 +68,10 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   let token = getAuthToken()
   
   const makeRequest = async (authToken: string | null) => {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    }
-
+    const headers = new Headers(options.headers as HeadersInit)
+    headers.set("Content-Type", "application/json")
     if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`
+      headers.set("Authorization", `Bearer ${authToken}`)
     }
 
     const response = await fetch(`${API_BASE_URL}${url}`, {
@@ -230,40 +227,49 @@ export const groupsApi = {
    * Create a new group
    */
   async create(data: CreateGroupRequest): Promise<Group> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth("/groups", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+    return response.data as Group
   },
-
   /**
    * Get all groups for current user
    */
   async getAll(): Promise<Group[]> {
-    // TODO: Connect to backend endpoint when available
-    return []
+    const response = await fetchWithAuth("/groups")
+    return (response.data as Group[]) || []
   },
 
   /**
    * Get group by ID
    */
   async getById(id: string): Promise<Group> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth(`/groups/${id}`)
+    return response.data as Group
   },
 
   /**
    * Update group
    */
   async update(id: string, data: Partial<CreateGroupRequest>): Promise<Group> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth(`/groups/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+    return response.data as Group
   },
 
   /**
    * Delete group
    */
   async delete(id: string): Promise<void> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    await fetchWithAuth(`/groups/${id}`, {
+      method: "DELETE",
+    })
   },
 }
 
@@ -276,48 +282,114 @@ export const billsApi = {
    * Create a new bill
    */
   async create(data: CreateBillRequest): Promise<Bill> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth("/bills", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as Bill
   },
 
   /**
    * Get all bills for current user
    */
   async getAll(): Promise<Bill[]> {
-    // TODO: Connect to backend endpoint when available
-    return []
+    const response = await fetchWithAuth("/bills")
+    const data = response.data as any
+    return (data?.bills as Bill[]) || []
+  },
+
+  /**
+   * Get group bills with pagination
+   */
+  async getByGroup(groupId: string, page?: number, limit?: number): Promise<Bill[]> {
+    const query = new URLSearchParams()
+    if (page) query.set("page", String(page))
+    if (limit) query.set("limit", String(limit))
+    const response = await fetchWithAuth(`/groups/${groupId}/bills${query.toString() ? `?${query.toString()}` : ""}`)
+    const data = response.data as any
+    return (data?.bills as Bill[]) || []
   },
 
   /**
    * Get bill by ID
    */
   async getById(id: string): Promise<Bill> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth(`/bills/${id}`)
+    return response.data as Bill
   },
 
   /**
    * Update bill
    */
   async update(id: string, data: Partial<CreateBillRequest>): Promise<Bill> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    const response = await fetchWithAuth(`/bills/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+    return response.data as Bill
   },
 
   /**
    * Delete bill
    */
   async delete(id: string): Promise<void> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+    await fetchWithAuth(`/bills/${id}`, {
+      method: "DELETE",
+    })
+  },
+}
+
+// ============================================================================
+// PROPOSALS API
+// ============================================================================
+
+export const proposalsApi = {
+  /**
+   * Create a new proposal
+   */
+  async create(data: { billId: string; title: string; description?: string; votingDeadline: string }): Promise<any> {
+    const response = await fetchWithAuth("/proposals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as any
   },
 
   /**
-   * Vote on bill
+   * Get proposals for a group
    */
-  async vote(data: VoteRequest): Promise<Bill> {
-    // TODO: Connect to backend endpoint when available
-    throw new Error("Not implemented")
+  async getByGroup(groupId: string): Promise<any[]> {
+    const response = await fetchWithAuth(`/groups/${groupId}/proposals`)
+    return (response.data as any[]) || []
+  },
+
+  /**
+   * Get proposal by ID
+   */
+  async getById(id: string): Promise<any> {
+    const response = await fetchWithAuth(`/proposals/${id}`)
+    return response.data as any
+  },
+
+  /**
+   * Vote on a proposal
+   */
+  async vote(proposalId: string, data: { voteType: "FOR" | "AGAINST" | "ABSTAIN"; comment?: string }): Promise<any> {
+    const response = await fetchWithAuth(`/proposals/${proposalId}/votes`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+    return response.data as any
+  },
+
+  /**
+   * Execute proposal
+   */
+  async execute(proposalId: string): Promise<any> {
+    const response = await fetchWithAuth(`/proposals/${proposalId}/execute`, {
+      method: "POST",
+    })
+    return response.data as any
   },
 }
 
@@ -329,8 +401,23 @@ export const transactionsApi = {
   /**
    * Get transactions by group
    */
-  async getByGroup(groupId: string): Promise<Transaction[]> {
-    // TODO: Connect to backend endpoint when available
-    return []
+  async getByGroup(groupId: string, page?: number, limit?: number): Promise<Transaction[]> {
+    const query = new URLSearchParams()
+    if (page) query.set("page", String(page))
+    if (limit) query.set("limit", String(limit))
+    const response = await fetchWithAuth(`/groups/${groupId}/transactions${query.toString() ? `?${query.toString()}` : ""}`)
+    const data = response.data as any
+    return (data?.transactions as Transaction[]) || []
+  },
+
+  /**
+   * Create a transaction (deposit, withdrawal, payment)
+   */
+  async create(payload: any): Promise<any> {
+    const response = await fetchWithAuth("/transactions", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return response.data as any
   },
 }

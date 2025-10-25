@@ -1,20 +1,24 @@
 "use client"
 
 import { useStore } from "@/lib/store"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Wallet, ArrowUpRight, ArrowDownRight, Copy, Check } from "lucide-react"
 import { useState } from "react"
+import AddFundsDialog from "./add-funds-dialog"
+import SendFundsDialog from "./send-funds-dialog"
 
 export function GroupBalance() {
   const { currentGroup, wallet } = useStore()
   const [copied, setCopied] = useState(false)
+  const [addFundsOpen, setAddFundsOpen] = useState(false)
+  const [sendFundsOpen, setSendFundsOpen] = useState(false)
 
   if (!currentGroup) return null
 
   // Use smart account address from group
   const walletAddress = currentGroup.smartAccountAddress || "No address"
-  const groupBalance = wallet?.balance || 2450.50
+  const groupBalance = wallet?.balance ?? 0
 
   const handleCopyAddress = async () => {
     if (currentGroup.smartAccountAddress) {
@@ -75,6 +79,14 @@ export function GroupBalance() {
           </Button>
         </div>
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={() => setAddFundsOpen(true)}>
+          Add Funds
+        </Button>
+        <Button onClick={() => setSendFundsOpen(true)}>Send</Button>
+      </CardFooter>
+      <AddFundsDialog open={addFundsOpen} onOpenChange={setAddFundsOpen} />
+      <SendFundsDialog open={sendFundsOpen} onOpenChange={setSendFundsOpen} />
     </Card>
   )
 }
