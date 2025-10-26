@@ -7,8 +7,9 @@ import { FileText, CheckCircle2, Clock, DollarSign } from "lucide-react"
 export function StatsOverview() {
   const { proposals, currentGroup, wallet } = useStore()
 
-  // Calculate group balance from wallet or default to 2450.50 for demo
-  const groupBalance = wallet?.balance ?? 0
+  // Use new balance format if available, fallback to legacy
+  const ethBalance = currentGroup?.balances?.eth ?? currentGroup?.balance ?? 0
+  const usdcBalance = currentGroup?.balances?.usdc ?? 0
 
   const stats = [
     {
@@ -30,10 +31,16 @@ export function StatsOverview() {
       color: "text-green-500",
     },
     {
-      label: "Wallet Balance",
-      value: `$${groupBalance.toFixed(2)}`,
+      label: "ETH Balance",
+      value: `${ethBalance.toFixed(4)} ETH`,
       icon: DollarSign,
       color: "text-purple-500",
+    },
+    {
+      label: "USDC Balance",
+      value: `${usdcBalance.toFixed(2)} USDC`,
+      icon: DollarSign,
+      color: "text-green-600",
     },
   ]
 

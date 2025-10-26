@@ -3,7 +3,7 @@
 import { useStore } from "@/lib/store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Wallet, ArrowUpRight, ArrowDownRight, Copy, Check } from "lucide-react"
+import { Wallet, ArrowUpRight, ArrowDownRight, Copy, Check, RefreshCw } from "lucide-react"
 import { useState } from "react"
 import AddFundsDialog from "./add-funds-dialog"
 import SendFundsDialog from "./send-funds-dialog"
@@ -13,12 +13,16 @@ export function GroupBalance() {
   const [copied, setCopied] = useState(false)
   const [addFundsOpen, setAddFundsOpen] = useState(false)
   const [sendFundsOpen, setSendFundsOpen] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   if (!currentGroup) return null
 
   // Use smart account address from group
   const walletAddress = currentGroup.smartAccountAddress || "No address"
-  const groupBalance = wallet?.balance ?? 0
+  
+  // Use new balance format if available, fallback to legacy
+  const ethBalance = currentGroup.balances?.eth ?? currentGroup.balance ?? 0
+  const usdcBalance = currentGroup.balances?.usdc ?? 0
 
   const handleCopyAddress = async () => {
     if (currentGroup.smartAccountAddress) {
@@ -33,6 +37,33 @@ export function GroupBalance() {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
   }
 
+  const handleRefreshBalance = async () => {
+    if (!currentGroup?.id) return
+    
+    setIsRefreshing(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/groups/${currentGroup.id}/refresh-balance`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        // Refresh the page to get updated data
+        window.location.reload()
+      } else {
+        console.error('Failed to refresh balance:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Failed to refresh balance:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -44,9 +75,29 @@ export function GroupBalance() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Balance Display */}
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Total Balance</p>
-          <p className="text-4xl font-bold">${groupBalance.toFixed(2)}</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Group Balances</p>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleRefreshBalance}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">ETH</p>
+              <p className="text-2xl font-bold">{ethBalance.toFixed(4)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">USDC</p>
+              <p className="text-2xl font-bold">{usdcBalance.toFixed(2)}</p>
+            </div>
+          </div>
         </div>
 
         {/* Wallet Address */}

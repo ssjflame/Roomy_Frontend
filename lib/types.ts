@@ -30,7 +30,11 @@ export interface Wallet {
   openfortPlayerId: string
   address: string
   chainId: number
-  balance: number
+  balance: number // Legacy ETH balance for backward compatibility
+  balances?: {    // New multi-token format
+    eth: number
+    usdc: number
+  }
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -52,7 +56,11 @@ export interface Group {
   name: string
   description?: string
   walletAddress: string
-  balance: number
+  balance: number // Legacy ETH balance for backward compatibility
+  balances?: {    // New multi-token format
+    eth: number
+    usdc: number
+  }
   createdAt: string
   updatedAt: string
   members: GroupMember[]

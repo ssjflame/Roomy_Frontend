@@ -49,6 +49,7 @@ export interface Wallet {
   address: string
   chainId: number
   balance: number
+  balances?: { eth: number; usdc: number }
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -63,6 +64,8 @@ export interface Group {
   description?: string
   imageUrl?: string
   smartAccountAddress?: string
+  balance?: number
+  balances?: { eth: number; usdc: number }
   isActive: boolean
   votingThreshold: number
   createdAt: string

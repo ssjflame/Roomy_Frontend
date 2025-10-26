@@ -189,12 +189,21 @@ export default function ProfilePage() {
                       <CardContent className="space-y-6">
                         {/* Balance */}
                         <div className="p-6 rounded-lg bg-linear-to-br from-primary to-primary/80 text-primary-foreground">
-                          <div className="text-sm opacity-90 mb-2">Total Balance</div>
-                          <div className="text-4xl font-bold mb-1">
-                            ${(wallet?.balance ?? 0).toFixed(2)}
+                          <div className="text-sm opacity-90 mb-2">Wallet Balances</div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <div className="text-2xl font-bold mb-1">
+                                {(wallet?.balances?.eth ?? wallet?.balance ?? 0).toFixed(4)}
+                              </div>
+                              <div className="text-sm opacity-75">ETH</div>
+                            </div>
+                            <div>
+                              <div className="text-2xl font-bold mb-1">
+                                {(wallet?.balances?.usdc ?? 0).toFixed(2)}
+                              </div>
+                              <div className="text-sm opacity-75">USDC</div>
+                            </div>
                           </div>
--                          <div className="text-sm opacity-75">USDC</div>
-+                          <div className="text-sm opacity-75">ETH</div>
                         </div>
 
                         {/* Wallet Address */}
