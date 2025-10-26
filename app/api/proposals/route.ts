@@ -2,48 +2,78 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    // In production, fetch proposals from database
-    // const proposals = await db.proposals.findMany({ where: { groupId } })
+    // Get auth token from cookies or headers
+    const authToken = request.cookies.get("auth_token")?.value || 
+                     request.headers.get("authorization")?.replace("Bearer ", "")
 
-    return NextResponse.json({ proposals: [] })
+    if (!authToken) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized" 
+      }, { status: 401 })
+    }
+
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const groupId = searchParams.get("groupId")
+
+    // TODO: Implement real proposals endpoint
+    // This endpoint should:
+    // 1. Verify JWT token
+    // 2. Get proposals from database, optionally filtered by groupId
+
+    return NextResponse.json({ 
+      success: false, 
+      error: "Proposals endpoint not implemented" 
+    }, { status: 501 })
   } catch (error) {
     console.error("Get proposals error:", error)
-    return NextResponse.json({ error: "Failed to fetch proposals" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      error: "Failed to fetch proposals" 
+    }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Get auth token from cookies or headers
+    const authToken = request.cookies.get("auth_token")?.value || 
+                     request.headers.get("authorization")?.replace("Bearer ", "")
+
+    if (!authToken) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized" 
+      }, { status: 401 })
+    }
+
     const body = await request.json()
-    const { title, description, amount, dueDate, groupId, userId } = body
+    const { billId, title, description, votingDeadline, groupId } = body
 
-    // Validate inputs
-    if (!title || !description || !amount || !dueDate || !groupId || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    // Validate required fields
+    if (!billId || !title || !votingDeadline || !groupId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Missing required fields: billId, title, votingDeadline, groupId" 
+      }, { status: 400 })
     }
 
-    // In production, save to database
-    // const proposal = await db.proposals.create({ data: { ... } })
+    // TODO: Implement real proposal creation
+    // This endpoint should:
+    // 1. Verify JWT token
+    // 2. Create proposal in database
+    // 3. Notify group members
 
-    const proposal = {
-      id: `prop-${Date.now()}`,
-      title,
-      description,
-      amount: Number.parseFloat(amount),
-      dueDate,
-      status: "pending",
-      createdBy: userId,
-      createdAt: new Date().toISOString(),
-      votes: {
-        approve: 0,
-        reject: 0,
-        voters: [],
-      },
-    }
-
-    return NextResponse.json({ proposal })
+    return NextResponse.json({ 
+      success: false, 
+      error: "Proposal creation endpoint not implemented" 
+    }, { status: 501 })
   } catch (error) {
     console.error("Create proposal error:", error)
-    return NextResponse.json({ error: "Failed to create proposal" }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      error: "Failed to create proposal" 
+    }, { status: 500 })
   }
 }

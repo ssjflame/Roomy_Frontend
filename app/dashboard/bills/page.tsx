@@ -11,11 +11,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Calendar, DollarSign, User, FileText, Filter } from "lucide-react"
 import { format } from "date-fns"
 import type { Bill, BillStatus } from "@/lib/store"
+import { CreateBillDialog } from "@/components/create-bill-dialog"
+import { BillDetailDialog } from "@/components/bill-detail-dialog"
 
 export default function BillsPage() {
   const router = useRouter()
   const { user, bills, currentGroup, budgetCategories } = useStore()
   const [filterStatus, setFilterStatus] = useState<BillStatus | "ALL">("ALL")
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -27,7 +32,7 @@ export default function BillsPage() {
     return null
   }
 
-  const groupBills = bills.filter((b) => b.groupId === currentGroup.id)
+  const groupBills = Array.isArray(bills) ? bills.filter((b) => b.groupId === currentGroup.id) : []
 
   const filteredBills = filterStatus === "ALL" 
     ? groupBills 
@@ -68,254 +73,203 @@ export default function BillsPage() {
     paid: groupBills.filter((b) => b.status === "PAID").length,
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Bills & Expenses</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage bills for {currentGroup.name}
-              </p>
-            </div>
-            <Button>
+  const renderBillsList = (list: Bill[]) => (
+    list.length === 0 ? (
+      <Card>
+        <CardContent className="py-12">
+          <div className="text-center">
+            <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No bills found</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Create your first bill to get started
+            </p>
+            <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Bill
             </Button>
           </div>
+        </CardContent>
+      </Card>
+    ) : (
+      list.map((bill) => {
+        const category = getCategoryById(bill.categoryId)
+        return (
+          <Card key={bill.id} className="cursor-pointer transition-all hover:shadow-md">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CardTitle className="text-lg">{bill.title}</CardTitle>
+                    <Badge variant={getStatusColor(bill.status)}>
+                      {getStatusLabel(bill.status)}
+                    </Badge>
+                  </div>
+                  {bill.description && (
+                    <CardDescription>{bill.description}</CardDescription>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium">
+                      {Number(bill.totalAmount).toFixed(2)} {bill.currency}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Amount</div>
+                  </div>
+                </div>
+
+                {bill.dueDate && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">
+                        {format(new Date(bill.dueDate), "MMM d, yyyy")}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Due Date</div>
+                    </div>
+                  </div>
+                )}
+
+                {category && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{category.icon}</span>
+                    <div>
+                      <div className="text-sm font-medium">{category.name}</div>
+                      <div className="text-xs text-muted-foreground">Category</div>
+                    </div>
+                  </div>
+                )}
+
+                {bill.creator && (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={bill.creator.avatarUrl} />
+                      <AvatarFallback>
+                        {bill.creator.firstName?.[0]}
+                        {bill.creator.lastName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-medium">
+                        {bill.creator.firstName} {bill.creator.lastName}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Created by</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-xs text-muted-foreground">
+                  Payee: {bill.payeeAddress.slice(0, 10)}...{bill.payeeAddress.slice(-8)}
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setSelectedBill(bill); setIsDetailOpen(true) }}>View Details</Button>
+                {bill.status === "DRAFT" && (
+                  <>
+                    <Button size="sm">Propose</Button>
+                    <Button variant="ghost" size="sm">Edit</Button>
+                  </>
+                )}
+                {bill.status === "APPROVED" && (
+                  <Button size="sm">Pay Now</Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })
+    )
+  )
+
+  return (
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Bills & Expenses</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage bills for {currentGroup.name}
+          </p>
         </div>
-      </header>
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Bill
+        </Button>
+      </div>
 
       {/* Stats Overview */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{billsByStatus.all}</div>
-              <div className="text-xs text-muted-foreground">Total Bills</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{billsByStatus.draft}</div>
-              <div className="text-xs text-muted-foreground">Drafts</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{billsByStatus.proposed}</div>
-              <div className="text-xs text-muted-foreground">Proposed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{billsByStatus.approved}</div>
-              <div className="text-xs text-muted-foreground">Approved</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{billsByStatus.paid}</div>
-              <div className="text-xs text-muted-foreground">Paid</div>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="text-center p-4 bg-card rounded-lg border">
+          <div className="text-2xl font-bold">{billsByStatus.all}</div>
+          <div className="text-xs text-muted-foreground">Total Bills</div>
+        </div>
+        <div className="text-center p-4 bg-card rounded-lg border">
+          <div className="text-2xl font-bold">{billsByStatus.draft}</div>
+          <div className="text-xs text-muted-foreground">Drafts</div>
+        </div>
+        <div className="text-center p-4 bg-card rounded-lg border">
+          <div className="text-2xl font-bold">{billsByStatus.proposed}</div>
+          <div className="text-xs text-muted-foreground">Proposed</div>
+        </div>
+        <div className="text-center p-4 bg-card rounded-lg border">
+          <div className="text-2xl font-bold">{billsByStatus.approved}</div>
+          <div className="text-xs text-muted-foreground">Approved</div>
+        </div>
+        <div className="text-center p-4 bg-card rounded-lg border">
+          <div className="text-2xl font-bold">{billsByStatus.paid}</div>
+          <div className="text-xs text-muted-foreground">Paid</div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="all" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="all" onClick={() => setFilterStatus("ALL")}>
-              All Bills
-            </TabsTrigger>
-            <TabsTrigger value="draft" onClick={() => setFilterStatus("DRAFT")}>
-              Drafts
-            </TabsTrigger>
-            <TabsTrigger value="proposed" onClick={() => setFilterStatus("PROPOSED")}>
-              Proposed
-            </TabsTrigger>
-            <TabsTrigger value="approved" onClick={() => setFilterStatus("APPROVED")}>
-              Approved
-            </TabsTrigger>
-            <TabsTrigger value="paid" onClick={() => setFilterStatus("PAID")}>
-              Paid
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="all" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all" onClick={() => setFilterStatus("ALL")}>
+            All Bills
+          </TabsTrigger>
+          <TabsTrigger value="draft" onClick={() => setFilterStatus("DRAFT")}>
+            Drafts
+          </TabsTrigger>
+          <TabsTrigger value="proposed" onClick={() => setFilterStatus("PROPOSED")}>
+            Proposed
+          </TabsTrigger>
+          <TabsTrigger value="approved" onClick={() => setFilterStatus("APPROVED")}>
+            Approved
+          </TabsTrigger>
+          <TabsTrigger value="paid" onClick={() => setFilterStatus("PAID")}>
+            Paid
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
-            {filteredBills.length === 0 ? (
-              <Card>
-                <CardContent className="py-12">
-                  <div className="text-center">
-                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No bills found</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Create your first bill to get started
-                    </p>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Bill
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredBills.map((bill) => {
-                const category = getCategoryById(bill.categoryId)
+        <TabsContent value="all" className="space-y-4">
+          {renderBillsList(filteredBills)}
+        </TabsContent>
 
-                return (
-                  <Card
-                    key={bill.id}
-                    className="cursor-pointer transition-all hover:shadow-md"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CardTitle className="text-lg">{bill.title}</CardTitle>
-                            <Badge variant={getStatusColor(bill.status)}>
-                              {getStatusLabel(bill.status)}
-                            </Badge>
-                          </div>
-                          {bill.description && (
-                            <CardDescription>{bill.description}</CardDescription>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Amount */}
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <div className="text-sm font-medium">
-                              {bill.totalAmount.toFixed(2)} {bill.currency}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Amount</div>
-                          </div>
-                        </div>
+        <TabsContent value="draft" className="space-y-4">
+          {renderBillsList(filteredBills)}
+        </TabsContent>
 
-                        {/* Due Date */}
-                        {bill.dueDate && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {format(new Date(bill.dueDate), "MMM d, yyyy")}
-                              </div>
-                              <div className="text-xs text-muted-foreground">Due Date</div>
-                            </div>
-                          </div>
-                        )}
+        <TabsContent value="proposed" className="space-y-4">
+          {renderBillsList(filteredBills)}
+        </TabsContent>
 
-                        {/* Category */}
-                        {category && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{category.icon}</span>
-                            <div>
-                              <div className="text-sm font-medium">{category.name}</div>
-                              <div className="text-xs text-muted-foreground">Category</div>
-                            </div>
-                          </div>
-                        )}
+        <TabsContent value="approved" className="space-y-4">
+          {renderBillsList(filteredBills)}
+        </TabsContent>
 
-                        {/* Creator */}
-                        {bill.creator && (
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src={bill.creator.avatarUrl} />
-                              <AvatarFallback>
-                                {bill.creator.firstName?.[0]}
-                                {bill.creator.lastName?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="text-sm font-medium">
-                                {bill.creator.firstName} {bill.creator.lastName}
-                              </div>
-                              <div className="text-xs text-muted-foreground">Created by</div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Payee Address */}
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="text-xs text-muted-foreground">
-                          Payee: {bill.payeeAddress.slice(0, 10)}...
-                          {bill.payeeAddress.slice(-8)}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="mt-4 flex gap-2">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                        {bill.status === "DRAFT" && (
-                          <>
-                            <Button size="sm">Propose</Button>
-                            <Button variant="ghost" size="sm">
-                              Edit
-                            </Button>
-                          </>
-                        )}
-                        {bill.status === "APPROVED" && (
-                          <Button size="sm">Pay Now</Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })
-            )}
-          </TabsContent>
-
-          <TabsContent value="draft">
-            <div className="space-y-4">
-              {filteredBills.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-muted-foreground">No draft bills</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="proposed">
-            <div className="space-y-4">
-              {filteredBills.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-muted-foreground">No proposed bills</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="approved">
-            <div className="space-y-4">
-              {filteredBills.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-muted-foreground">No approved bills</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="paid">
-            <div className="space-y-4">
-              {filteredBills.length === 0 && (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-muted-foreground">No paid bills</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+        <TabsContent value="paid" className="space-y-4">
+          {renderBillsList(filteredBills)}
+        </TabsContent>
+      </Tabs>
+      <CreateBillDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+      <BillDetailDialog open={isDetailOpen} onOpenChange={setIsDetailOpen} bill={selectedBill} categories={budgetCategories} />
     </div>
   )
 }

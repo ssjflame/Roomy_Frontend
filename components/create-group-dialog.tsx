@@ -23,9 +23,10 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [useClientAddress, setUseClientAddress] = useState(true)
+  const [useClientAddress, setUseClientAddress] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [provisioning, setProvisioning] = useState(false)
+  const [votingThreshold, setVotingThreshold] = useState<number>(51)
 
   const clientAddress = useMemo(() => wallet?.address || "", [wallet])
   const canUseClientAddress = !!clientAddress
@@ -55,11 +56,17 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       return
     }
 
+    if (!Number.isFinite(votingThreshold) || votingThreshold < 1 || votingThreshold > 100) {
+      toast.error("Voting threshold must be between 1 and 100")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
+        votingThreshold: Math.round(votingThreshold),
       }
       if (useClientAddress && canUseClientAddress) {
         payload.smartAccountAddress = clientAddress
@@ -67,15 +74,17 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
 
       const result = await groupsApi.create(payload)
 
+      const assignedAddress = (result as any).smartAccountAddress || (result as any).walletAddress || undefined
+
       // Map backend group shape to store shape
       const newGroup = {
         id: result.id,
         name: result.name,
         description: result.description,
         imageUrl: "/placeholder.svg",
-        smartAccountAddress: (result as any).smartAccountAddress || (result as any).walletAddress || clientAddress || undefined,
+        smartAccountAddress: assignedAddress || clientAddress || undefined,
         isActive: true,
-        votingThreshold: 51,
+        votingThreshold: (result as any).votingThreshold ?? Math.round(votingThreshold),
         createdAt: (result as any).createdAt || new Date().toISOString(),
         updatedAt: (result as any).updatedAt || new Date().toISOString(),
       }
@@ -83,7 +92,17 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       addGroup(newGroup)
       setCurrentGroup(newGroup)
 
-      toast.success("Group created successfully")
+      // UX: inform user of final address and any override behavior
+      if (useClientAddress && canUseClientAddress && assignedAddress && assignedAddress.toLowerCase() !== clientAddress.toLowerCase()) {
+        toast.info("Backend assigned a unique address for this group (overrode client address).")
+      }
+      if (assignedAddress) {
+        const short = `${assignedAddress.slice(0, 6)}...${assignedAddress.slice(-4)}`
+        toast.success(`Group created. Address: ${short}`)
+      } else {
+        toast.success("Group created successfully")
+      }
+
       onOpenChange(false)
       router.push("/dashboard")
     } catch (error) {
@@ -124,6 +143,19 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="group-threshold">Voting threshold (1–100%)</Label>
+            <Input
+              id="group-threshold"
+              type="number"
+              min={1}
+              max={100}
+              value={votingThreshold}
+              onChange={(e) => setVotingThreshold(Number(e.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">Defaults to 51% if not specified.</p>
+          </div>
+
           {!canUseClientAddress && (
             <Alert>
               <AlertDescription>
@@ -147,12 +179,15 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
               <p className="text-xs text-muted-foreground">
                 {canUseClientAddress
                   ? `Address: ${clientAddress.slice(0, 6)}...${clientAddress.slice(-4)}`
-                  : "No wallet detected. You can still create a group; backend will assign an address."}
+                  : "No wallet detected. You can still create a group; backend will assign a unique address."}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Recommended: leave off for best reliability. Backend enforces uniqueness and provisions the address.
               </p>
             </div>
             <Switch
               checked={useClientAddress && canUseClientAddress}
-              onCheckedChange={(val) => setUseClientAddress(val)}
+              onCheckedChange={(checked) => setUseClientAddress(checked)}
               disabled={!canUseClientAddress}
             />
           </div>

@@ -178,6 +178,7 @@ export interface CreateGroupRequest {
   name: string
   description?: string
   smartAccountAddress?: string
+  votingThreshold?: number
 }
 
 export interface CreateBillRequest {

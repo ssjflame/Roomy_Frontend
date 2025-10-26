@@ -6,7 +6,7 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Button } from "./ui/button"
 import { useStore } from "@/lib/store"
-import { transactionsApi } from "@/lib/api"
+import { transactionsApi, authApi } from "@/lib/api"
 
 interface AddFundsDialogProps {
   open: boolean
@@ -14,7 +14,7 @@ interface AddFundsDialogProps {
 }
 
 export default function AddFundsDialog({ open, onOpenChange }: AddFundsDialogProps) {
-  const { currentGroup, wallet, addTransaction } = useStore()
+  const { currentGroup, wallet, addTransaction, setWallet } = useStore()
   const [amount, setAmount] = useState<string>("")
   const [description, setDescription] = useState<string>("")
   const [submitting, setSubmitting] = useState<boolean>(false)
@@ -30,9 +30,9 @@ export default function AddFundsDialog({ open, onOpenChange }: AddFundsDialogPro
       const payload = {
         groupId: currentGroup.id,
         amount: numeric,
-        currency: "USDC",
+        currency: "ETH",
         description: description || "Deposit",
-        type: "DEPOSIT",
+        type: "DEPOSIT" as const,
         metadata: {
           source: "frontend",
           walletAddress: wallet?.address || null,
@@ -42,6 +42,23 @@ export default function AddFundsDialog({ open, onOpenChange }: AddFundsDialogPro
       if (result?.transaction) {
         addTransaction(result.transaction)
       }
+
+      // Attempt to refresh wallet from backend to reflect new balance
+      try {
+        const { wallet: updatedWallet } = await authApi.session()
+        if (updatedWallet) {
+          setWallet(updatedWallet)
+        } else if (wallet) {
+          // Fallback: optimistic update in case backend doesn't return wallet immediately
+          setWallet({ ...wallet, balance: (wallet.balance ?? 0) + numeric })
+        }
+      } catch (err) {
+        // If session refresh fails, do an optimistic update
+        if (wallet) {
+          setWallet({ ...wallet, balance: (wallet.balance ?? 0) + numeric })
+        }
+      }
+
       onOpenChange(false)
       setAmount("")
       setDescription("")
@@ -60,8 +77,8 @@ export default function AddFundsDialog({ open, onOpenChange }: AddFundsDialogPro
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="amount">Amount (USDC)</Label>
-            <Input id="amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Label htmlFor="amount">Amount (ETH)</Label>
+            <Input id="amount" type="number" min="0" step="0.0001" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">Description (optional)</Label>

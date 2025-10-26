@@ -154,9 +154,8 @@ export default function HomePage() {
       <nav className="sticky top-0 z-40 bg-card border-b">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary-foreground" />
-            </div>
+            {/* Brand logo */}
+            <Image src="/images/logo.png" alt="Roomy logo" width={36} height={36} />
             <span className="font-bold">Roomy</span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm">
@@ -197,7 +196,7 @@ export default function HomePage() {
 
       {/* Features */}
       <section id="features" className="reveal container mx-auto px-4 py-12">
-        <div className="rounded-2xl bg-gradient-to-br from-muted/30 to-transparent p-6 border">
+        <div className="rounded-2xl bg-linear-to-br from-muted/30 to-transparent p-6 border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="feature-card p-6 rounded-xl bg-card border border-border hover:shadow-md transition-shadow">
               <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">

@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -45,6 +46,11 @@ export default function SignupPage() {
       // Store tokens
       localStorage.setItem("auth_token", response.accessToken)
       localStorage.setItem("refresh_token", response.refreshToken)
+      // Persist 7-day cookies for middleware
+      const maxAge = 60 * 60 * 24 * 7
+      const secure = typeof window !== "undefined" && window.location.protocol === "https:"
+      document.cookie = `auth_token=${response.accessToken}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`
+      document.cookie = `refresh_token=${response.refreshToken}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`
 
       // Update store with user data
       setUser({
@@ -174,13 +180,27 @@ export default function SignupPage() {
 
           <div className="space-y-2 mb-4">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create a strong password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a strong password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
           </div>
 
           <Button className="w-full" onClick={handleContinue} disabled={isLoading}>

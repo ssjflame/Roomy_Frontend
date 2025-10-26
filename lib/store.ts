@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
 // ============================================
 // ENUMS
@@ -274,7 +275,9 @@ interface AppState {
   setIsLoading: (loading: boolean) => void
 }
 
-export const useStore = create<AppState>((set, get) => ({
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   // User state
   user: null,
   wallet: null,
@@ -335,9 +338,19 @@ export const useStore = create<AppState>((set, get) => ({
             return p
           }
 
+          // Create new vote entry
+          const newVote: Vote = {
+            id: `vote_${Date.now()}_${userId}`,
+            proposalId: proposalId,
+            userId: userId,
+            voteType: voteType,
+            votedAt: new Date().toISOString(),
+          }
+
           const newVotesFor = p.votesFor + (voteType === "FOR" ? 1 : 0)
           const newVotesAgainst = p.votesAgainst + (voteType === "AGAINST" ? 1 : 0)
           const newVotesAbstain = p.votesAbstain + (voteType === "ABSTAIN" ? 1 : 0)
+          const updatedVotes = [...(p.votes || []), newVote]
 
           // Automatically update status based on vote threshold
           let newStatus = p.status
@@ -355,6 +368,8 @@ export const useStore = create<AppState>((set, get) => ({
             votesAgainst: newVotesAgainst,
             votesAbstain: newVotesAbstain,
             status: newStatus,
+            votes: updatedVotes,
+            updatedAt: new Date().toISOString(),
           }
         }),
       }
@@ -399,4 +414,10 @@ export const useStore = create<AppState>((set, get) => ({
   // Loading states
   isLoading: false,
   setIsLoading: (loading) => set({ isLoading: loading }),
-}))
+}),
+    {
+      name: "roomy-storage",
+      partialize: (state) => ({ currentGroup: state.currentGroup }),
+    }
+  )
+)

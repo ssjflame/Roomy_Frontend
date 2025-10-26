@@ -20,14 +20,21 @@ import {
   Shield,
   CheckCircle,
   Clock,
-  Settings
+  Settings,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { format } from "date-fns"
+import { getChainConfig } from "@/lib/chain"
 
 export default function ProfilePage() {
+  const chain = getChainConfig()
   const router = useRouter()
   const { user, wallet, groupMembers } = useStore()
   const [copied, setCopied] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -49,27 +56,22 @@ export default function ProfilePage() {
   const isAdmin = userGroups.some((m) => m.role === "ADMIN")
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Profile & Wallet</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage your account and wallet settings
-              </p>
-            </div>
-            <Button variant="outline">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Profile & Wallet</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your account and wallet settings
+          </p>
         </div>
-      </header>
+        <Button variant="outline" className="w-full sm:w-auto">
+          <Settings className="w-4 h-4 mr-2" />
+          Settings
+        </Button>
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Profile Card */}
           <div className="lg:col-span-1">
@@ -186,12 +188,13 @@ export default function ProfilePage() {
                       </CardHeader>
                       <CardContent className="space-y-6">
                         {/* Balance */}
-                        <div className="p-6 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                        <div className="p-6 rounded-lg bg-linear-to-br from-primary to-primary/80 text-primary-foreground">
                           <div className="text-sm opacity-90 mb-2">Total Balance</div>
                           <div className="text-4xl font-bold mb-1">
-                            ${wallet.balance.toFixed(2)}
+                            ${(wallet?.balance ?? 0).toFixed(2)}
                           </div>
-                          <div className="text-sm opacity-75">USDC</div>
+-                          <div className="text-sm opacity-75">USDC</div>
++                          <div className="text-sm opacity-75">ETH</div>
                         </div>
 
                         {/* Wallet Address */}
@@ -216,7 +219,7 @@ export default function ProfilePage() {
                             </Button>
                             <Button variant="outline" size="icon" asChild>
                               <a
-                                href={`https://sepolia.arbiscan.io/address/${wallet.address}`}
+                                href={`${chain.explorerUrl}/address/${wallet.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
@@ -253,11 +256,11 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">Chain ID</Label>
-                            <div className="text-sm font-medium">{wallet.chainId}</div>
+                            <div className="text-sm font-medium">{chain.id}</div>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">Network</Label>
-                            <div className="text-sm font-medium">Arbitrum Sepolia</div>
+                            <div className="text-sm font-medium">{chain.name}</div>
                           </div>
                         </div>
 
@@ -374,15 +377,66 @@ export default function ProfilePage() {
                       <h3 className="text-sm font-semibold">Change Password</h3>
                       <div className="space-y-2">
                         <Label htmlFor="currentPassword">Current Password</Label>
-                        <Input id="currentPassword" type="password" />
+                        <div className="relative">
+                          <Input 
+                            id="currentPassword" 
+                            type={showCurrentPassword ? "text" : "password"}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-gray-400" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="newPassword">New Password</Label>
-                        <Input id="newPassword" type="password" />
+                        <div className="relative">
+                          <Input 
+                            id="newPassword" 
+                            type={showNewPassword ? "text" : "password"}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            {showNewPassword ? (
+                              <EyeOff className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-gray-400" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input id="confirmPassword" type="password" />
+                        <div className="relative">
+                          <Input 
+                            id="confirmPassword" 
+                            type={showConfirmPassword ? "text" : "password"}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-gray-400" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <Button>Update Password</Button>
                     </div>
@@ -425,7 +479,6 @@ export default function ProfilePage() {
             </Tabs>
           </div>
         </div>
-      </main>
     </div>
   )
 }

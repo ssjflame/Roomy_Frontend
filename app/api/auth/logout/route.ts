@@ -7,7 +7,11 @@ export async function POST(request: NextRequest) {
     // 2. Clear cookies
     // 3. Log the logout event
 
-    return NextResponse.json({ success: true })
+    const res = NextResponse.json({ success: true })
+    // Clear client cookies so middleware sees unauthenticated state
+    res.cookies.set("auth_token", "", { maxAge: 0, path: "/", sameSite: "lax" })
+    res.cookies.set("refresh_token", "", { maxAge: 0, path: "/", sameSite: "lax" })
+    return res
   } catch (error) {
     console.error("Logout error:", error)
     return NextResponse.json({ error: "Logout failed" }, { status: 500 })

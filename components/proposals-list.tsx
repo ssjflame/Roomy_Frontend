@@ -91,7 +91,7 @@ export function ProposalsList() {
                         <>
                           <div className="flex items-center gap-1">
                             <DollarSign className="w-4 h-4" />
-                            <span className="font-medium">${proposal.bill.totalAmount.toFixed(2)}</span>
+                            <span className="font-medium">${Number(proposal.bill.totalAmount ?? (proposal.bill as any)?.amount ?? 0).toFixed(2)}</span>
                           </div>
                           {proposal.bill.dueDate && (
                             <div className="flex items-center gap-1">
@@ -106,7 +106,8 @@ export function ProposalsList() {
                     {proposal.status === "PENDING" && (
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-muted-foreground">
-                          Votes: {proposal.votesFor} for, {proposal.votesAgainst} against
+                          Votes: {proposal.votesFor || 0} for, {proposal.votesAgainst || 0} against
+                          {(proposal.votesAbstain || 0) > 0 && `, ${proposal.votesAbstain} abstain`}
                         </span>
                       </div>
                     )}

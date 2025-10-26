@@ -94,53 +94,52 @@ export default function RecurringBillsPage() {
     .reduce((sum, rb) => sum + rb.amount, 0)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background p-4 md:p-6 space-y-6">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Recurring Bills</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage automated recurring expenses for {currentGroup.name}
-              </p>
-            </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Recurring Bill
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Recurring Bills</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage automated recurring expenses for {currentGroup.name}
+          </p>
         </div>
-      </header>
+        <Button className="w-full sm:w-auto">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Recurring Bill
+        </Button>
+      </div>
 
       {/* Stats Overview */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{activeRecurringBills.length}</div>
-              <div className="text-xs text-muted-foreground">Active Bills</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{activeRecurringBills.length}</div>
+            <div className="text-xs text-muted-foreground">Active Bills</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">${totalMonthlyRecurring.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground">Monthly Total</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">
+              {activeRecurringBills.filter((rb) => rb.autoPropose).length}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">${totalMonthlyRecurring.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">Monthly Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">
-                {activeRecurringBills.filter((rb) => rb.autoPropose).length}
-              </div>
-              <div className="text-xs text-muted-foreground">Auto-Proposed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{inactiveRecurringBills.length}</div>
-              <div className="text-xs text-muted-foreground">Paused</div>
-            </div>
-          </div>
-        </div>
+            <div className="text-xs text-muted-foreground">Auto-Proposed</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{inactiveRecurringBills.length}</div>
+            <div className="text-xs text-muted-foreground">Paused</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
         {/* Active Recurring Bills */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Active Recurring Bills</h2>
@@ -333,7 +332,7 @@ export default function RecurringBillsPage() {
         <Card className="mt-8 border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
           <CardContent className="py-4">
             <div className="flex gap-3">
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0 mt-0.5">
                 <span className="text-white text-xs">i</span>
               </div>
               <div>
@@ -347,7 +346,6 @@ export default function RecurringBillsPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
     </div>
   )
 }

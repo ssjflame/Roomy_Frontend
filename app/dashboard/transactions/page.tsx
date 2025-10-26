@@ -19,8 +19,10 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import type { Transaction, TransactionStatus, TransactionType } from "@/lib/store"
+import { getChainConfig } from "@/lib/chain"
 
 export default function TransactionsPage() {
+  const chain = getChainConfig()
   const router = useRouter()
   const { user, transactions, currentGroup } = useStore()
   const [filterType, setFilterType] = useState<TransactionType | "ALL">("ALL")
@@ -95,76 +97,77 @@ export default function TransactionsPage() {
 
   const totalVolume = groupTransactions
     .filter((t) => t.status === "COMPLETED")
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((sum, t) => sum + Number(t?.amount ?? 0), 0)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Transaction History</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                View all transactions for {currentGroup.name}
-              </p>
-            </div>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Transaction History</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            View all transactions for {currentGroup.name}
+          </p>
         </div>
-      </header>
+        <Button variant="outline" className="w-full sm:w-auto">
+          <Download className="w-4 h-4 mr-2" />
+          Export
+        </Button>
+      </div>
 
       {/* Stats Overview */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold">{transactionsByType.all}</div>
-              <div className="text-xs text-muted-foreground">Total Transactions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">${totalVolume.toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground">Total Volume</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{transactionsByType.billPayment}</div>
-              <div className="text-xs text-muted-foreground">Bill Payments</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{transactionsByType.deposit}</div>
-              <div className="text-xs text-muted-foreground">Deposits</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{transactionsByType.withdrawal}</div>
-              <div className="text-xs text-muted-foreground">Withdrawals</div>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{transactionsByType.all}</div>
+            <div className="text-xs text-muted-foreground">Total Transactions</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">${totalVolume.toFixed(2)}</div>
+            <div className="text-xs text-muted-foreground">Total Volume</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{transactionsByType.billPayment}</div>
+            <div className="text-xs text-muted-foreground">Bill Payments</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{transactionsByType.deposit}</div>
+            <div className="text-xs text-muted-foreground">Deposits</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold">{transactionsByType.withdrawal}</div>
+            <div className="text-xs text-muted-foreground">Withdrawals</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="all" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="all" onClick={() => setFilterType("ALL")}>
-              All
-            </TabsTrigger>
-            <TabsTrigger value="bill_payment" onClick={() => setFilterType("BILL_PAYMENT")}>
-              Bill Payments
-            </TabsTrigger>
-            <TabsTrigger value="deposit" onClick={() => setFilterType("DEPOSIT")}>
-              Deposits
-            </TabsTrigger>
-            <TabsTrigger value="withdrawal" onClick={() => setFilterType("WITHDRAWAL")}>
-              Withdrawals
-            </TabsTrigger>
-            <TabsTrigger value="other" onClick={() => setFilterType("REFUND")}>
-              Other
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="all" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all" onClick={() => setFilterType("ALL")}>
+            All
+          </TabsTrigger>
+          <TabsTrigger value="bill_payment" onClick={() => setFilterType("BILL_PAYMENT")}>
+            Bills
+          </TabsTrigger>
+          <TabsTrigger value="deposit" onClick={() => setFilterType("DEPOSIT")}>
+            Deposits
+          </TabsTrigger>
+          <TabsTrigger value="withdrawal" onClick={() => setFilterType("WITHDRAWAL")}>
+            Withdrawals
+          </TabsTrigger>
+          <TabsTrigger value="other" onClick={() => setFilterType("REFUND")}>
+            Other
+          </TabsTrigger>
+        </TabsList>
 
           <TabsContent value="all" className="space-y-4">
             {filteredTransactions.length === 0 ? (
@@ -239,7 +242,7 @@ export default function TransactionsPage() {
                             }`}>
                               {transaction.type === "DEPOSIT" && "+"}
                               {transaction.type === "WITHDRAWAL" && "-"}
-                              ${transaction.amount.toFixed(2)}
+                              ${Number(transaction?.amount ?? 0).toFixed(2)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {transaction.currency}
@@ -257,7 +260,7 @@ export default function TransactionsPage() {
                           </div>
                           <Button variant="ghost" size="sm" asChild>
                             <a 
-                              href={`https://sepolia.arbiscan.io/tx/${transaction.txHash}`}
+                              href={`${chain.explorerUrl}/tx/${transaction.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -322,7 +325,6 @@ export default function TransactionsPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </main>
     </div>
   )
 }

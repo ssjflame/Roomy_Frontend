@@ -56,73 +56,70 @@ export default function BudgetPage() {
   const budgetUtilization = totalBudget > 0 ? (totalSpending / totalBudget) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Budget & Categories</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Manage spending categories for {currentGroup.name}
-              </p>
-            </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Category
-            </Button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Budget & Categories</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage spending categories for {currentGroup.name}
+          </p>
         </div>
-      </header>
+        <Button className="w-full sm:w-auto">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Category
+        </Button>
+      </div>
 
       {/* Budget Overview */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <div className="text-sm text-muted-foreground mb-1">Total Budget</div>
-              <div className="text-3xl font-bold">${totalBudget.toFixed(2)}</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground mb-1">Total Spending</div>
-              <div className="text-3xl font-bold">${totalSpending.toFixed(2)}</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground mb-1">Budget Utilization</div>
-              <div className="flex items-center gap-3">
-                <div className="text-3xl font-bold">
-                  {budgetUtilization.toFixed(1)}%
-                </div>
-                {budgetUtilization > 85 && (
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-1">Total Budget</div>
+            <div className="text-3xl font-bold">${totalBudget.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-1">Total Spending</div>
+            <div className="text-3xl font-bold">${totalSpending.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-1">Budget Utilization</div>
+            <div className="flex items-center gap-3">
+              <div className="text-3xl font-bold">
+                {budgetUtilization.toFixed(1)}%
               </div>
-              <Progress value={budgetUtilization} className="mt-2" />
+              {budgetUtilization > 85 && (
+                <AlertCircle className="w-5 h-5 text-orange-500" />
+              )}
             </div>
-          </div>
-        </div>
+            <Progress value={budgetUtilization} className="mt-2" />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {groupCategories.length === 0 ? (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <PieChart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create budget categories to organize and track expenses
-                </p>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create First Category
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {groupCategories.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <PieChart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Create budget categories to organize and track expenses
+              </p>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Category
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {groupCategories.map((category) => {
               const spending = getCategorySpending(category.id)
               const limit = category.monthlyLimit || 0
@@ -294,7 +291,6 @@ export default function BudgetPage() {
             </CardContent>
           </Card>
         )}
-      </main>
     </div>
   )
 }

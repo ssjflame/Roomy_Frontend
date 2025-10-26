@@ -25,13 +25,14 @@ export function ProposalDetailDialog({ proposal, open, onOpenChange, onVote }: P
   const userId = user?.id || ""
   const votesArray = proposal.votes || []
   const hasVoted = votesArray.some((v) => v.userId === userId)
-  const approveCount = (proposal as any).votes?.approve ?? proposal.votesFor ?? 0
-  const rejectCount = (proposal as any).votes?.reject ?? proposal.votesAgainst ?? 0
-  const votersCount = (proposal as any).votes?.voters?.length ?? votesArray.length ?? 0
-  const totalVotes = approveCount + rejectCount
+  const approveCount = proposal.votesFor ?? 0
+  const rejectCount = proposal.votesAgainst ?? 0
+  const abstainCount = proposal.votesAbstain ?? 0
+  const totalVotes = approveCount + rejectCount + abstainCount
   const approvalPercentage = totalVotes > 0 ? (approveCount / totalVotes) * 100 : 0
   const requiredVotes = groupMembers.filter((m) => m.groupId === currentGroup?.id && m.isActive).length || 4
   const votesNeeded = Math.ceil(requiredVotes / 2)
+  const votersCount = totalVotes
 
   const amount = proposal.bill?.totalAmount ?? 0
   const dueDate = proposal.bill?.dueDate
@@ -118,7 +119,7 @@ export function ProposalDetailDialog({ proposal, open, onOpenChange, onVote }: P
               <User className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Voters:</span>
               <span className="font-semibold">
-                {votersCount} / {requiredVotes}
+                {votersCount} / {requiredVotes} / {requiredVotes}
               </span>
             </div>
           </div>

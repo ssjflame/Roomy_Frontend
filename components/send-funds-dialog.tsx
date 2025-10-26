@@ -6,7 +6,7 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Button } from "./ui/button"
 import { useStore } from "@/lib/store"
-import { transactionsApi } from "@/lib/api"
+import { transactionsApi, authApi } from "@/lib/api"
 
 interface SendFundsDialogProps {
   open: boolean
@@ -14,7 +14,7 @@ interface SendFundsDialogProps {
 }
 
 export default function SendFundsDialog({ open, onOpenChange }: SendFundsDialogProps) {
-  const { currentGroup, wallet, addTransaction } = useStore()
+  const { currentGroup, wallet, addTransaction, setWallet } = useStore()
   const [amount, setAmount] = useState<string>("")
   const [recipient, setRecipient] = useState<string>("")
   const [description, setDescription] = useState<string>("")
@@ -31,9 +31,9 @@ export default function SendFundsDialog({ open, onOpenChange }: SendFundsDialogP
       const payload = {
         groupId: currentGroup.id,
         amount: numeric,
-        currency: "USDC",
+        currency: "ETH",
         description: description || "Send funds",
-        type: "TRANSFER",
+        type: "TRANSFER" as const,
         metadata: {
           source: "frontend",
           fromWallet: wallet?.address || null,
@@ -44,6 +44,22 @@ export default function SendFundsDialog({ open, onOpenChange }: SendFundsDialogP
       if (result?.transaction) {
         addTransaction(result.transaction)
       }
+
+      // Refresh wallet to reflect new balance after transfer
+      try {
+        const { wallet: updatedWallet } = await authApi.session()
+        if (updatedWallet) {
+          setWallet(updatedWallet)
+        } else if (wallet) {
+          // Fallback: optimistic deduction
+          setWallet({ ...wallet, balance: (wallet.balance ?? 0) - numeric })
+        }
+      } catch (err) {
+        if (wallet) {
+          setWallet({ ...wallet, balance: (wallet.balance ?? 0) - numeric })
+        }
+      }
+
       onOpenChange(false)
       setAmount("")
       setRecipient("")
@@ -63,8 +79,8 @@ export default function SendFundsDialog({ open, onOpenChange }: SendFundsDialogP
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="amount">Amount (USDC)</Label>
-            <Input id="amount" type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Label htmlFor="amount">Amount (ETH)</Label>
+            <Input id="amount" type="number" min="0" step="0.0001" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="recipient">Recipient address (EVM)</Label>

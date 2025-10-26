@@ -34,7 +34,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
         <DialogHeader>
           <DialogTitle className="text-xl">Contact Roomy</DialogTitle>
           <DialogDescription>We’ll get back to you as soon as possible.</DialogDescription>

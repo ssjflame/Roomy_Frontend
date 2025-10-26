@@ -16,6 +16,7 @@ import { authApi } from "@/lib/api"
 import { useStore } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
 
 interface AuthDialogProps {
   open: boolean
@@ -26,6 +27,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { setUser, setWallet } = useStore()
   const router = useRouter()
+
+  // Password visibility states
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -168,16 +173,42 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={loginData.password}
-                  onChange={(e) =>
-                    setLoginData({ ...loginData, password: e.target.value })
-                  }
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showLoginPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={loginData.password}
+                    onChange={(e) =>
+                      setLoginData({ ...loginData, password: e.target.value })
+                    }
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  className="text-sm text-blue-600 hover:text-blue-500 underline"
+                  onClick={() => {
+                    // TODO: Implement forgot password functionality
+                    toast.info("Forgot password feature coming soon!")
+                  }}
+                >
+                  Forgot password?
+                </button>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign In"}
@@ -252,16 +283,30 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="registerPassword">Password</Label>
-                <Input
-                  id="registerPassword"
-                  type="password"
-                  placeholder="Create a strong password"
-                  value={registerData.password}
-                  onChange={(e) =>
-                    setRegisterData({ ...registerData, password: e.target.value })
-                  }
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="registerPassword"
+                    type={showRegisterPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    value={registerData.password}
+                    onChange={(e) =>
+                      setRegisterData({ ...registerData, password: e.target.value })
+                    }
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                  >
+                    {showRegisterPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create Account"}

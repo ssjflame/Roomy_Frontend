@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, User, Wallet } from "lucide-react"
+import { LogOut, User } from "lucide-react"
 
 export function UserNav() {
   const router = useRouter()
@@ -24,6 +24,11 @@ export function UserNav() {
     // Clear authentication tokens
     localStorage.removeItem("auth_token")
     localStorage.removeItem("refresh_token")
+    // Clear cookies for middleware
+    try {
+      document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax"
+      document.cookie = "refresh_token=; Max-Age=0; Path=/; SameSite=Lax"
+    } catch {}
     
     // Clear store state
     setUser(null)
@@ -64,12 +69,7 @@ export function UserNav() {
                 : user.username || user.email}
             </p>
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-            {wallet && (
-              <p className="text-xs leading-none text-muted-foreground flex items-center gap-1 mt-1">
-                <Wallet className="h-3 w-3" />
-                {truncateAddress(wallet.address)}
-              </p>
-            )}
+
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -78,9 +78,9 @@ export function UserNav() {
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

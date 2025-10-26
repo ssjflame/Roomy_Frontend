@@ -2,21 +2,26 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authApi } from "@/lib/api"
 import { useStore } from "@/lib/store"
 import { toast } from "sonner"
+import { useSearchParams } from "next/navigation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default function LoginPage() {
+function LoginForm() {
   const [emailOrUsername, setEmailOrUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const expired = searchParams.get("expired") === "1"
   const { setUser, setWallet } = useStore()
 
   const handleGoogle = () => {
@@ -32,6 +37,11 @@ export default function LoginPage() {
       // Store tokens
       localStorage.setItem("auth_token", response.accessToken)
       localStorage.setItem("refresh_token", response.refreshToken)
+      // Persist 7-day cookies for middleware
+      const maxAge = 60 * 60 * 24 * 7
+      const secure = typeof window !== "undefined" && window.location.protocol === "https:"
+      document.cookie = `auth_token=${response.accessToken}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`
+      document.cookie = `refresh_token=${response.refreshToken}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure ? "; Secure" : ""}`
 
       // Update user in store
       setUser({
@@ -66,6 +76,17 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen grid md:grid-cols-2 bg-background">
+      {/* Session expired banner */}
+      {expired && (
+        <div className="absolute top-4 left-4 right-4 z-10">
+          <Alert variant="destructive">
+            <AlertTitle>Session expired</AlertTitle>
+            <AlertDescription>
+              Your session has expired. Please log in again to continue.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <Button
         variant="ghost"
         size="icon"
@@ -116,13 +137,40 @@ export default function LoginPage() {
 
           <div className="space-y-2 mt-3">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-3">
+            <button
+              type="button"
+              className="text-sm text-blue-600 hover:text-blue-500 underline"
+              onClick={() => {
+                // TODO: Implement forgot password functionality
+                toast.info("Forgot password feature coming soon!")
+              }}
+            >
+              Forgot password?
+            </button>
           </div>
 
           <Button className="w-full mt-4" onClick={handleLogin} disabled={isLoading}>
@@ -147,5 +195,13 @@ export default function LoginPage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

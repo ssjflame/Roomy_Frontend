@@ -1,14 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import { useStore } from "@/lib/store"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Users, UserPlus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { InviteDialog } from "./invite-dialog"
 
 export function GroupMembers() {
   const { currentGroup, user, groupMembers } = useStore()
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
 
   if (!currentGroup) return null
 
@@ -45,7 +48,7 @@ export function GroupMembers() {
           {currentGroupMembers.length} {currentGroupMembers.length === 1 ? "member" : "members"} in this group
         </CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={() => setShowInviteDialog(true)}>
             <UserPlus className="w-4 h-4" />
             Invite
           </Button>
@@ -81,6 +84,11 @@ export function GroupMembers() {
           ))}
         </div>
       </CardContent>
+      
+      <InviteDialog 
+        open={showInviteDialog} 
+        onOpenChange={setShowInviteDialog} 
+      />
     </Card>
   )
 }
