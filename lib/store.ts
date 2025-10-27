@@ -46,11 +46,13 @@ export interface Wallet {
   id: string
   userId: string
   openfortPlayerId: string
+  openfortAccountId?: string
   address: string
   chainId: number
   balance: number
   balances?: { eth: number; usdc: number }
   isActive: boolean
+  provisioningStatus?: string
   createdAt: string
   updatedAt: string
 }

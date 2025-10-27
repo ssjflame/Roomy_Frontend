@@ -113,6 +113,16 @@ export default function DashboardPage() {
     console.log("Dashboard: Initial setup useEffect triggered", { user })
     
     const init = async () => {
+      // Check if authentication token exists before making any API calls
+      const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+      
+      if (!authToken) {
+        console.log("Dashboard: No authentication token found, redirecting to login")
+        setError("Authentication required. Please log in.")
+        router.push("/auth/login")
+        return
+      }
+
       // Check if user is authenticated
       if (!user) {
         console.log("Dashboard: No user found, attempting to get profile")
@@ -138,7 +148,10 @@ export default function DashboardPage() {
         } catch (e) {
           console.error("Dashboard: Failed to get user profile", e)
           setError("Authentication required. Please log in.")
-          setIsInitialized(true)
+          // Clear invalid tokens and redirect to login
+          localStorage.removeItem("auth_token")
+          localStorage.removeItem("refresh_token")
+          router.push("/auth/login")
           return
         }
       }
@@ -156,6 +169,8 @@ export default function DashboardPage() {
           smartAccountAddress: g.smartAccountAddress ?? g.walletAddress ?? undefined,
           isActive: g.isActive ?? true,
           votingThreshold: g.votingThreshold ?? 51,
+          balance: g.balance ?? 0,
+          balances: g.balances ?? { eth: 0, usdc: 0 },
           createdAt: g.createdAt,
           updatedAt: g.updatedAt,
         }))
@@ -201,6 +216,19 @@ export default function DashboardPage() {
           
       } catch (error) {
         console.error("Failed to load groups:", error)
+        
+        // Check if it's an authentication error
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as any
+          if (axiosError.response?.status === 401) {
+            console.log("Dashboard: Authentication error while fetching groups, redirecting to login")
+            localStorage.removeItem("auth_token")
+            localStorage.removeItem("refresh_token")
+            router.push("/auth/login")
+            return
+          }
+        }
+        
         setError("Failed to load groups. Please try again.")
         // Set empty groups instead of mock data
         setGroups([])

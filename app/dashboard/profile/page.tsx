@@ -261,6 +261,31 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
+                        {/* Openfort Account ID */}
+                        {wallet?.openfortAccountId && (
+                          <div className="space-y-2">
+                            <Label>Openfort Account ID</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={wallet.openfortAccountId}
+                                readOnly
+                                className="font-mono text-sm"
+                              />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleCopyAddress(wallet.openfortAccountId)}
+                              >
+                                {copied ? (
+                                  <CheckCircle className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Chain Info */}
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1">
@@ -272,6 +297,18 @@ export default function ProfilePage() {
                             <div className="text-sm font-medium">{chain.name}</div>
                           </div>
                         </div>
+
+                        {/* Provisioning Status */}
+                        {wallet?.provisioningStatus && (
+                          <div className="pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Provisioning Status</span>
+                              <Badge variant={wallet.provisioningStatus === "provisioned" ? "secondary" : "outline"}>
+                                {wallet.provisioningStatus.charAt(0).toUpperCase() + wallet.provisioningStatus.slice(1)}
+                              </Badge>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Wallet Status */}
                         <div className="pt-4 border-t">
