@@ -238,13 +238,12 @@ export default function BillsPage() {
                     <Avatar className="w-6 h-6">
                       <AvatarImage src={bill.creator.avatarUrl} />
                       <AvatarFallback>
-                        {bill.creator.firstName?.[0]}
-                        {bill.creator.lastName?.[0]}
+                        {bill.creator.username?.[0]?.toUpperCase() || bill.creator.email?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="text-sm font-medium">
-                        {bill.creator.firstName} {bill.creator.lastName}
+                        {bill.creator.username || bill.creator.email}
                       </div>
                       <div className="text-xs text-muted-foreground">Created by</div>
                     </div>
