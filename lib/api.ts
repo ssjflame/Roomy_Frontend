@@ -765,8 +765,11 @@ export const billsApi = {
          throw new Error(errorMsg)
        }
       
-      const bills = (response.data as Bill[]) || []
+      // Handle nested response structure: response.data.bills
+      const responseData = response.data as { bills: Bill[]; pagination?: any }
+      const bills = responseData.bills || []
       console.log('📊 Bills fetched:', bills.length, 'bills')
+      console.log('📄 Pagination info:', responseData.pagination)
       return bills
     } catch (error) {
       console.error('💥 Bills API error:', error)
