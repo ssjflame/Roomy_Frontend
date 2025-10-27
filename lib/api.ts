@@ -1,3 +1,4 @@
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
 import type {
   User,
   Wallet,
@@ -18,7 +19,99 @@ import type {
 } from "./types"
 
 // Backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+
+// Create axios instance with default configuration
+const axiosInstance: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Request interceptor for logging and authentication
+axiosInstance.interceptors.request.use(
+  (config) => {
+    console.log('🚀 Axios Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers,
+      data: config.data ? 'Present' : 'None',
+      timeout: config.timeout,
+    })
+    return config
+  },
+  (error) => {
+    console.error('❌ Axios Request Error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// Response interceptor for logging and error handling
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => {
+    console.log('✅ Axios Response Success:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.config.url,
+      method: response.config.method?.toUpperCase(),
+      headers: response.headers,
+      data: response.data,
+    })
+    return response
+  },
+  (error: AxiosError) => {
+    console.error('💥 Axios Response Error:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
+      baseURL: error.config?.baseURL,
+      fullURL: error.config ? `${error.config.baseURL}${error.config.url}` : 'Unknown',
+      responseData: error.response?.data,
+      requestData: error.config?.data,
+      isNetworkError: !error.response,
+      isTimeout: error.code === 'ECONNABORTED',
+      stack: error.stack,
+    })
+
+    // Enhanced error messages for common network issues
+    if (!error.response) {
+      // Network error (no response received)
+      if (error.code === 'ECONNREFUSED') {
+        console.error('🚫 Connection Refused - Backend server may not be running on:', API_BASE_URL)
+        error.message = 'Connection refused - Backend server may not be running'
+      } else if (error.code === 'ENOTFOUND') {
+        console.error('🔍 DNS Resolution Failed for:', API_BASE_URL)
+        error.message = 'DNS resolution failed - Check API URL'
+      } else if (error.code === 'ECONNABORTED') {
+        console.error('⏰ Request Timeout for:', API_BASE_URL)
+        error.message = 'Request timeout - Server took too long to respond'
+      } else if (error.message.includes('Network Error')) {
+        console.error('🌐 Network Error - Check connectivity to:', API_BASE_URL)
+        error.message = 'Network error - Check internet connection and API URL'
+      } else {
+        console.error('🔌 Unknown Network Error:', error.message)
+        error.message = `Network request failed: ${error.message}`
+      }
+    } else if (error.response.status >= 500) {
+      console.error('🔥 Server Error:', error.response.status, error.response.statusText)
+    } else if (error.response.status === 404) {
+      console.error('🔍 Not Found:', error.config?.url)
+    } else if (error.response.status === 401) {
+      console.error('🔐 Unauthorized:', error.config?.url)
+    } else if (error.response.status === 403) {
+      console.error('🚫 Forbidden:', error.config?.url)
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 // Helper function to get auth token from localStorage
 const getAuthToken = (): string | null => {
@@ -38,15 +131,8 @@ const refreshAccessToken = async (): Promise<string | null> => {
   if (!refreshToken) return null
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refreshToken }),
-    })
-
-    const result: ApiResponse = await response.json()
+    const response = await axiosInstance.post('/auth/refresh', { refreshToken })
+    const result: ApiResponse = response.data
 
     if (result.success && result.data) {
       const { accessToken } = result.data as { accessToken: string }
@@ -64,109 +150,75 @@ const refreshAccessToken = async (): Promise<string | null> => {
 }
 
 // Helper function to make authenticated requests with auto-refresh
-async function fetchWithAuth<T = unknown>(url: string, options: RequestInit = {}): Promise<{ success: boolean; data: T } | { success: false; error: string; data: T }> {
+async function fetchWithAuth<T = unknown>(url: string, options: AxiosRequestConfig = {}): Promise<{ success: boolean; data: T } | { success: false; error: string; data: T }> {
   let token = getAuthToken()
   
   const makeRequest = async (authToken: string | null) => {
-    const headers = new Headers(options.headers as HeadersInit)
-    headers.set("Content-Type", "application/json")
+    const config: AxiosRequestConfig = {
+      ...options,
+      url,
+      headers: {
+        ...options.headers,
+      },
+    }
+    
     if (authToken) {
-      headers.set("Authorization", `Bearer ${authToken}`)
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${authToken}`,
+      }
     }
 
+    console.log('🔐 Making authenticated request to:', url)
+    console.log('🎫 Token available:', !!authToken)
+
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
-        ...options,
-        headers,
-      })
+      const response = await axiosInstance.request(config)
       return response
     } catch (error) {
-      const err = new Error("Network request failed")
-      ;(err as any).cause = error
-      ;(err as any).isNetworkError = true
-      ;(err as any).url = `${API_BASE_URL}${url}`
-      throw err
+      console.error('🚨 Authenticated request failed:', error)
+      throw error
     }
-  }
-
-  // First attempt
-  let response = await makeRequest(token)
-  
-  // If unauthorized and we have a refresh token, try to refresh
-  if (response.status === 401 && getRefreshToken()) {
-    const newToken = await refreshAccessToken()
-    if (newToken) {
-      // Retry with new token
-      response = await makeRequest(newToken)
-    }
-  }
-
-  let result: ApiResponse
-  try {
-    result = await response.json()
-  } catch (jsonError) {
-    const err = new Error("Invalid JSON response")
-    ;(err as any).cause = jsonError
-    ;(err as any).status = response.status
-    throw err
-  }
-
-  if (!result.success) {
-    // If unauthorized/expired, force logout and redirect without throwing noisy errors
-    if (response.status === 401 || (result.error && /expired|unauthorized/i.test(result.error))) {
-      try {
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.removeItem("auth_token")
-            localStorage.removeItem("refresh_token")
-            localStorage.setItem("session_expired", "1")
-          } catch {}
-          try {
-            document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax"
-            document.cookie = "refresh_token=; Max-Age=0; Path=/; SameSite=Lax"
-          } catch {}
-          const url = new URL("/auth/login", window.location.origin)
-          url.searchParams.set("expired", "1")
-          window.location.href = url.toString()
-        }
-      } catch {}
-      // Return a special envelope to avoid throwing an error
-      return { success: false, error: "SESSION_EXPIRED", data: null as T }
-    }
-
-    const err = new Error(result.error || "Request failed")
-    ;(err as any).errors = result.errors
-    ;(err as any).status = response.status
-    throw err
-  }
-
-  return result as { success: boolean; data: T }
-}
-
-// Helper function to make unauthenticated requests
-async function fetchApi<T = unknown>(url: string, options: RequestInit = {}): Promise<{ success: boolean; data: T }> {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...options.headers,
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...options,
-      headers,
-    })
-
-    let result: ApiResponse
-    try {
-      result = await response.json()
-    } catch (jsonError) {
-      const err = new Error("Invalid JSON response")
-      ;(err as any).cause = jsonError
-      ;(err as any).status = response.status
-      throw err
+    // First attempt
+    let response = await makeRequest(token)
+    
+    // If unauthorized and we have a refresh token, try to refresh
+    if (response.status === 401 && getRefreshToken()) {
+      const newToken = await refreshAccessToken()
+      if (newToken) {
+        // Retry with new token
+        response = await makeRequest(newToken)
+      }
     }
+
+    const result: ApiResponse = response.data
 
     if (!result.success) {
+      // If unauthorized/expired, force logout and redirect without throwing noisy errors
+      if (response.status === 401 || (result.error && /expired|unauthorized/i.test(result.error))) {
+        try {
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.removeItem("auth_token")
+              localStorage.removeItem("refresh_token")
+              localStorage.setItem("session_expired", "1")
+            } catch {}
+            try {
+              document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax"
+              document.cookie = "refresh_token=; Max-Age=0; Path=/; SameSite=Lax"
+            } catch {}
+            const url = new URL("/auth/login", window.location.origin)
+            url.searchParams.set("expired", "1")
+            window.location.href = url.toString()
+          }
+        } catch {}
+        // Return a special envelope to avoid throwing an error
+        return { success: false, error: "SESSION_EXPIRED", data: null as T }
+      }
+
       const err = new Error(result.error || "Request failed")
       ;(err as any).errors = result.errors
       ;(err as any).status = response.status
@@ -175,10 +227,116 @@ async function fetchApi<T = unknown>(url: string, options: RequestInit = {}): Pr
 
     return result as { success: boolean; data: T }
   } catch (error) {
-    const err = new Error("Network request failed")
-    ;(err as any).cause = error
-    ;(err as any).url = `${API_BASE_URL}${url}`
-    throw err
+    // Handle axios errors
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401 && getRefreshToken()) {
+        // Try to refresh token on 401 error
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          try {
+            const response = await makeRequest(newToken)
+            const result: ApiResponse = response.data
+            
+            if (result.success) {
+              return result as { success: boolean; data: T }
+            }
+          } catch (retryError) {
+            console.error('🔄 Token refresh retry failed:', retryError)
+          }
+        }
+      }
+      
+      // Handle session expiration
+      if (error.response?.status === 401) {
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("auth_token")
+            localStorage.removeItem("refresh_token")
+            localStorage.setItem("session_expired", "1")
+            const url = new URL("/auth/login", window.location.origin)
+            url.searchParams.set("expired", "1")
+            window.location.href = url.toString()
+          }
+        } catch {}
+        return { success: false, error: "SESSION_EXPIRED", data: null as T }
+      }
+      
+      // Re-throw axios errors for proper handling
+      throw error
+    }
+    
+    // Re-throw non-axios errors
+    throw error
+  }
+}
+
+// Helper function to make unauthenticated requests
+async function fetchApi<T = unknown>(url: string, options: AxiosRequestConfig = {}): Promise<{ success: boolean; data: T }> {
+  console.log('🌐 API_BASE_URL:', API_BASE_URL)
+  console.log('📡 fetchApi request details:', {
+    url: url,
+    method: options.method || 'GET',
+    headers: options.headers,
+    hasData: !!options.data
+  })
+
+  try {
+    const config: AxiosRequestConfig = {
+      ...options,
+      url,
+    }
+
+    const response = await axiosInstance.request(config)
+    const result: ApiResponse = response.data
+
+    if (!result.success) {
+      console.error('❌ API request failed:', {
+        error: result.error,
+        errors: result.errors,
+        status: response.status,
+        url: url
+      })
+      const err = new Error(result.error || "Request failed")
+      ;(err as any).errors = result.errors
+      ;(err as any).status = response.status
+      throw err
+    }
+
+    console.log('✅ fetchApi success:', result)
+    return result as { success: boolean; data: T }
+  } catch (error) {
+    // Handle axios errors with enhanced logging
+    if (axios.isAxiosError(error)) {
+      console.error('💥 Axios error in fetchApi:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: url,
+        method: options.method || 'GET',
+        responseData: error.response?.data,
+        isNetworkError: !error.response,
+        isTimeout: error.code === 'ECONNABORTED',
+      })
+
+      // If it's an axios error with response data, try to extract API error
+      if (error.response?.data) {
+        const apiError = error.response.data
+        if (apiError.error) {
+          const err = new Error(apiError.error)
+          ;(err as any).errors = apiError.errors
+          ;(err as any).status = error.response.status
+          throw err
+        }
+      }
+
+      // Re-throw axios error for interceptor handling
+      throw error
+    }
+
+    // Handle non-axios errors
+    console.error('💥 Non-axios error in fetchApi:', error)
+    throw error
   }
 }
 
@@ -193,7 +351,7 @@ export const authApi = {
   async register(data: RegisterRequest): Promise<AuthData> {
     const response = await fetchApi<AuthData>("/auth/register", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -204,7 +362,7 @@ export const authApi = {
   async login(data: LoginRequest): Promise<AuthData> {
     const response = await fetchApi<AuthData>("/auth/login", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -215,7 +373,7 @@ export const authApi = {
   async refresh(data: RefreshTokenRequest): Promise<{ accessToken: string }> {
     const response = await fetchApi("/auth/refresh", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data as { accessToken: string }
   },
@@ -226,7 +384,7 @@ export const authApi = {
   async logout(data: LogoutRequest): Promise<void> {
     await fetchApi("/auth/logout", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
   },
 
@@ -245,7 +403,7 @@ export const authApi = {
   async changePassword(data: ChangePasswordRequest): Promise<void> {
     await fetchWithAuth("/auth/change-password", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
   },
 
@@ -263,7 +421,7 @@ export const authApi = {
   async forgotPassword(email: string): Promise<void> {
     await fetchApi("/auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      data: { email },
     })
   },
 
@@ -273,7 +431,7 @@ export const authApi = {
   async resetPassword(token: string, newPassword: string): Promise<void> {
     await fetchApi("/auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ token, newPassword }),
+      data: { token, newPassword },
     })
   },
 
@@ -283,7 +441,7 @@ export const authApi = {
   async updateProfile(data: Partial<User>): Promise<User> {
     const response = await fetchWithAuth<{ user: User }>("/users/profile", {
       method: "PUT",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data.user
   },
@@ -352,7 +510,7 @@ export const authApi = {
    * Mark all notifications as read
    */
   async markAllNotificationsRead(): Promise<void> {
-    await fetchWithAuth("/auth/notifications/mark-all-read", {
+    await fetchWithAuth("/users/notifications/mark-all-read", {
       method: "POST",
     })
   },
@@ -377,7 +535,7 @@ export const groupsApi = {
   async create(data: CreateGroupRequest): Promise<Group> {
     const response = await fetchWithAuth<Group>("/groups", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -403,7 +561,7 @@ export const groupsApi = {
   async update(id: string, data: Partial<CreateGroupRequest>): Promise<Group> {
     const response = await fetchWithAuth<Group>(`/groups/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -423,7 +581,7 @@ export const groupsApi = {
   async inviteMembers(groupId: string, emails: string[], role: string = "MEMBER"): Promise<void> {
     await fetchWithAuth(`/groups/${groupId}/invite`, {
       method: "POST",
-      body: JSON.stringify({ emails, role }),
+      data: { emails, role },
     })
   },
 
@@ -433,7 +591,7 @@ export const groupsApi = {
   async joinGroup(groupId: string, inviteToken: string): Promise<void> {
     await fetchWithAuth(`/groups/${groupId}/join`, {
       method: "POST",
-      body: JSON.stringify({ inviteToken }),
+      data: { inviteToken },
     })
   },
 
@@ -451,7 +609,7 @@ export const groupsApi = {
   async addMember(groupId: string, memberData: any): Promise<void> {
     await fetchWithAuth(`/groups/${groupId}/members`, {
       method: "POST",
-      body: JSON.stringify(memberData),
+      data: memberData,
     })
   },
 
@@ -461,7 +619,7 @@ export const groupsApi = {
   async updateMemberRole(groupId: string, memberId: string, role: string): Promise<void> {
     await fetchWithAuth(`/groups/${groupId}/members/${memberId}`, {
       method: "PUT",
-      body: JSON.stringify({ role }),
+      data: { role },
     })
   },
 
@@ -478,12 +636,60 @@ export const groupsApi = {
    * Get group bills
    */
   async getBills(groupId: string, page?: number, limit?: number): Promise<Bill[]> {
-    const params = new URLSearchParams()
-    if (page) params.append("page", page.toString())
-    if (limit) params.append("limit", limit.toString())
-    const queryString = params.toString() ? `?${params.toString()}` : ""
-    const response = await fetchWithAuth<Bill[]>(`/groups/${groupId}/bills${queryString}`)
-    return response.data || []
+    console.log('🔍 billsApi.getByGroup called with:', { groupId, page, limit })
+    
+    const query = new URLSearchParams()
+    query.set("groupId", groupId)
+    if (page) query.set("page", String(page))
+    if (limit) query.set("limit", String(limit))
+    
+    console.log('📋 Bills API query string:', query.toString())
+    console.log('🌐 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/bills?${query.toString()}`)
+    
+    try {
+      const response = await fetchWithAuth(`/bills?${query.toString()}`)
+      console.log('✅ Bills API response:', response)
+      
+      if (!response.success) {
+        const errorMsg = 'error' in response ? response.error : 'Failed to fetch bills'
+        console.error('❌ Bills API failed:', errorMsg)
+        throw new Error(errorMsg)
+      }
+      
+      // Handle response data - should be direct array according to API docs
+      let bills: Bill[] = []
+      
+      if (Array.isArray(response.data)) {
+        bills = response.data as Bill[]
+        console.log('📊 Direct bills array received:', bills.length, 'bills')
+      } else if (response.data && typeof response.data === 'object' && 'bills' in response.data) {
+        // Fallback for paginated response structure
+        bills = (response.data as any).bills || []
+        console.log('📊 Bills extracted from paginated response:', bills.length, 'bills')
+      } else {
+        console.warn('⚠️ Unexpected response structure:', response.data)
+        bills = []
+      }
+      
+      // Validate bill status values
+      bills.forEach((bill, index) => {
+        const validStatuses = ['DRAFT', 'PROPOSED', 'APPROVED', 'REJECTED', 'PAID', 'CANCELLED']
+        if (!validStatuses.includes(bill.status)) {
+          console.warn(`⚠️ Bill ${index} has invalid status: ${bill.status}. Expected one of: ${validStatuses.join(', ')}`)
+        }
+      })
+      
+      return bills
+    } catch (error) {
+      console.error('💥 Bills API error:', error)
+      console.error('🔍 Error details:', {
+        message: (error as Error).message,
+        cause: (error as any).cause,
+        isNetworkError: (error as any).isNetworkError,
+        url: (error as any).url
+      })
+      throw error
+    }
   },
 
   /**
@@ -518,7 +724,7 @@ export const billsApi = {
   async create(data: CreateBillRequest): Promise<Bill> {
     const response = await fetchWithAuth<Bill>("/bills", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -540,11 +746,38 @@ export const billsApi = {
    */
   async getByGroup(groupId: string, page?: number, limit?: number): Promise<Bill[]> {
     const query = new URLSearchParams()
-    query.set("groupId", groupId)
     if (page) query.set("page", String(page))
     if (limit) query.set("limit", String(limit))
-    const response = await fetchWithAuth(`/bills?${query.toString()}`)
-    return (response.data as Bill[]) || []
+    
+    const queryString = query.toString()
+    const endpoint = `/groups/${groupId}/bills${queryString ? `?${queryString}` : ''}`
+    
+    console.log('📋 Bills API endpoint:', endpoint)
+    console.log('🌐 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}${endpoint}`)
+    
+    try {
+      const response = await fetchWithAuth(endpoint)
+      console.log('✅ Bills API response:', response)
+      
+      if (!response.success) {
+         const errorMsg = 'error' in response ? response.error : 'Failed to fetch bills'
+         console.error('❌ Bills API failed:', errorMsg)
+         throw new Error(errorMsg)
+       }
+      
+      const bills = (response.data as Bill[]) || []
+      console.log('📊 Bills fetched:', bills.length, 'bills')
+      return bills
+    } catch (error) {
+      console.error('💥 Bills API error:', error)
+      console.error('🔍 Error details:', {
+        message: (error as Error).message,
+        cause: (error as any).cause,
+        isNetworkError: (error as any).isNetworkError,
+        url: (error as any).url
+      })
+      throw error
+    }
   },
 
   /**
@@ -561,7 +794,7 @@ export const billsApi = {
   async update(id: string, data: Partial<CreateBillRequest>): Promise<Bill> {
     const response = await fetchWithAuth<Bill>(`/bills/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data
   },
@@ -595,7 +828,7 @@ export const proposalsApi = {
   async create(data: { billId: string; title: string; description?: string; votingDeadline: string }): Promise<any> {
     const response = await fetchWithAuth("/proposals", {
       method: "POST",
-      body: JSON.stringify(data),
+      data: data,
     })
     return response.data as any
   },
@@ -622,7 +855,7 @@ export const proposalsApi = {
   async vote(proposalId: string, payload: { isApproved: boolean; comment?: string }): Promise<any> {
     const response = await fetchWithAuth(`/proposals/${proposalId}/votes`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      data: payload,
     })
     return response.data as any
   },
@@ -657,7 +890,7 @@ export const transactionsApi = {
   }): Promise<any> {
     const response = await fetchWithAuth("/transactions", {
       method: "POST",
-      body: JSON.stringify(payload),
+      data: payload,
     })
     return response.data as any
   },
@@ -727,14 +960,14 @@ export const categoriesApi = {
   async create(payload: { groupId: string; name: string; color?: string; icon?: string; monthlyLimit: number }): Promise<BudgetCategory> {
     const response = await fetchWithAuth(`/budget/categories`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      data: payload,
     })
     return response.data as BudgetCategory
   },
   async update(categoryId: string, updates: Partial<BudgetCategory>): Promise<BudgetCategory> {
     const response = await fetchWithAuth(`/budget/categories/${categoryId}`, {
       method: "PATCH",
-      body: JSON.stringify(updates),
+      data: updates,
     })
     return response.data as BudgetCategory
   },
@@ -752,14 +985,14 @@ export const recurringApi = {
   async create(payload: { groupId: string; title: string; amount: number; frequency: string; nextDueDate: string; categoryId?: string }): Promise<RecurringBill> {
     const response = await fetchWithAuth(`/recurring/recurring`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      data: payload,
     })
     return response.data as RecurringBill
   },
   async update(recurringId: string, updates: Partial<RecurringBill>): Promise<RecurringBill> {
     const response = await fetchWithAuth(`/recurring/recurring/${recurringId}`, {
       method: "PATCH",
-      body: JSON.stringify(updates),
+      data: updates,
     })
     return response.data as RecurringBill
   },

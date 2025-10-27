@@ -1,204 +1,305 @@
-# Roomy – Full-Stack Guide (Frontend Features + Backend Contracts)
+# 🏠 Roomy
 
-A comprehensive, production-ready overview of the Roomy application: features, data needs, and backend responsibilities required to make the entire frontend fully functional. This consolidates and supersedes prior docs (FEATURES.md, BACKEND_INTEGRATION.md, GROUPS_OPENFORT_README.md, QUICK_START.md, SETUP.md) with a single authoritative reference.
+**A modern, blockchain-powered expense sharing and group management platform**
 
-## 1) Project Overview
-- Framework: Next.js 16 (App Router)
-- Language: TypeScript
-- Styling: Tailwind CSS
-- UI: Radix UI + shadcn/ui
-- State: Zustand (`lib/store.ts`)
-- API layer: `lib/api.ts` (JSON envelope `ApiResponse`)
-- Blockchain: Openfort SDK (client) + Polygon Amoy (80002)
-- Data: fetched from backend via `lib/api.ts`
-- Env: `NEXT_PUBLIC_API_URL` base for backend REST API
+Roomy is a comprehensive web application that simplifies shared living expenses through smart contracts and democratic voting. Perfect for roommates, shared apartments, and group living situations, Roomy enables transparent expense tracking, automated bill splitting, and secure blockchain-based payments.
 
-## 2) App Routes & Features
-- `/`: Landing + auth dialog (login/register)
-- `/dashboard`: Overview – balance, proposals, members, stats
-- `/dashboard/groups`: Groups list + create group dialog
-- `/dashboard/bills`: Bills list, details, status filters
-- `/dashboard/transactions`: Transactions history (blockchain)
-- `/dashboard/budget`: Categories, limits, progress
-- `/dashboard/recurring`: Recurring bills (schedules, next due)
-- `/dashboard/profile`: User profile, wallet, security
-- `/dashboard/notifications`: Notification center
+![Roomy Dashboard](https://via.placeholder.com/800x400/4F46E5/FFFFFF?text=Roomy+Dashboard)
 
-## 3) Frontend Architecture
-- Centralized store: `lib/store.ts` defines entities and state slices (Groups, Bills, Proposals/Votes, Transactions, BudgetCategories, RecurringBills, Notifications, User, Wallet).
-- API service: `lib/api.ts` centralizes HTTP calls, with `fetchApi` and `fetchWithAuth` that return an `ApiResponse<T>` envelope. `fetchWithAuth` handles token refresh on 401.
-- Components and pages consume store and API services. `CreateGroupDialog` currently integrates `groupsApi.create` and maps backend response into store shape.
+## ✨ Features
 
-## 4) API Envelope Contract
-All backend responses should follow:
+### 🏘️ **Group Management**
+- Create and manage living groups with smart contract integration
+- Role-based permissions (admin, member)
+- Invite system for adding new members
+- Real-time group balance tracking
+
+### 💰 **Smart Expense Tracking**
+- Create and categorize bills with detailed line items
+- Automatic expense splitting among group members
+- Support for recurring bills (rent, utilities, subscriptions)
+- Attachment support for receipts and documents
+
+### 🗳️ **Democratic Voting System**
+- Proposal-based expense approval workflow
+- Transparent voting with FOR/AGAINST/ABSTAIN options
+- Configurable voting thresholds
+- Automatic execution of approved proposals
+
+### 💳 **Blockchain Integration**
+- Secure payments via Polygon blockchain
+- Smart account wallets through Openfort
+- Transaction history and verification
+- Real-time balance updates
+
+### 📊 **Budget Management**
+- Category-based expense tracking
+- Monthly budget limits and progress monitoring
+- Visual spending analytics
+- Expense trend analysis
+
+### 🔔 **Real-time Notifications**
+- Instant updates on new bills and proposals
+- Voting reminders and deadlines
+- Payment confirmations
+- Group activity notifications
+
+## 🛠️ Tech Stack
+
+### **Frontend**
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Components:** Radix UI + shadcn/ui
+- **State Management:** Zustand
+- **HTTP Client:** Axios
+- **Animations:** GSAP
+
+### **Blockchain & Payments**
+- **Blockchain:** Polygon Amoy Testnet
+- **Wallet Integration:** Openfort SDK
+- **Smart Contracts:** Account Abstraction
+
+### **Development Tools**
+- **Package Manager:** npm
+- **Linting:** ESLint
+- **Type Checking:** TypeScript
+- **Build Tool:** Next.js built-in
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (version 18.0 or higher)
+- **npm** (version 8.0 or higher)
+- **Git** for version control
+
+### **Required Accounts & API Keys**
+- **Openfort Account** - For blockchain wallet integration
+- **Backend API** - Roomy backend service (see API Documentation)
+
+## 🚀 Installation
+
+### 1. **Clone the Repository**
+```bash
+git clone https://github.com/your-username/roomy-frontend.git
+cd roomy-frontend
+```
+
+### 2. **Install Dependencies**
+```bash
+npm install
+```
+
+### 3. **Environment Setup**
+Create a `.env.local` file in the root directory:
+
+```env
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
+# Openfort Configuration
+NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY=your_openfort_publishable_key
+```
+
+### 4. **Start Development Server**
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`
+
+## 🎯 Usage
+
+### **Getting Started**
+
+1. **Register/Login**
+   - Visit the homepage and click "Get Started"
+   - Create an account or login with existing credentials
+   - Connect your wallet through Openfort integration
+
+2. **Create a Group**
+   - Navigate to Dashboard → Groups
+   - Click "Create Group" and provide group details
+   - Invite members via email or username
+
+3. **Add Expenses**
+   - Go to Dashboard → Bills
+   - Create new bills with itemized expenses
+   - Set due dates and assign categories
+
+4. **Vote on Proposals**
+   - Review pending proposals in the dashboard
+   - Cast your vote (FOR/AGAINST/ABSTAIN)
+   - Add comments to explain your decision
+
+5. **Track Finances**
+   - Monitor group balance and individual contributions
+   - View transaction history on the blockchain
+   - Set and track budget categories
+
+### **Available Scripts**
+
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+
+# Type Checking
+npx tsc --noEmit     # Check TypeScript types
+```
+
+## 📁 Project Structure
+
+```
+roomy-frontend/
+├── app/                    # Next.js App Router pages
+│   ├── api/               # API route handlers
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main application pages
+│   └── globals.css        # Global styles
+├── components/            # Reusable UI components
+│   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── auth-dialog.tsx   # Authentication modal
+│   ├── create-*.tsx      # Creation dialogs
+│   └── dashboard-nav.tsx # Navigation component
+├── lib/                   # Utility libraries
+│   ├── api.ts            # API client and endpoints
+│   ├── store.ts          # Zustand state management
+│   ├── types.ts          # TypeScript type definitions
+│   ├── utils.ts          # Helper functions
+│   └── validation.ts     # Form validation schemas
+├── public/               # Static assets
+├── styles/               # Additional stylesheets
+└── docs/                 # Documentation files
+```
+
+### **Key Files**
+
+- **`lib/api.ts`** - Centralized API client with Axios
+- **`lib/store.ts`** - Global state management with Zustand
+- **`lib/types.ts`** - TypeScript interfaces and types
+- **`components/ui/`** - Reusable UI components
+- **`app/dashboard/`** - Main application pages
+
+## 📚 API Documentation
+
+The frontend communicates with a REST API backend using a standardized response envelope:
+
 ```json
 {
   "success": true,
   "message": "optional message",
   "data": { ... },
   "error": "optional error",
-  "errors": { "field": ["validation message"] }
+  "errors": { "field": ["validation messages"] }
 }
 ```
-- On error, set `success: false` and populate `error` or `errors`.
-- Frontend expects `data` consistently when `success: true`.
 
-## 5) Authentication & Session
-Endpoints required (unauth unless noted):
-- `POST /auth/register` → `{ email, username, password, firstName?, lastName?, phoneNumber? }` → `AuthData { user, accessToken, refreshToken, wallet? }`
-- `POST /auth/login` → `{ emailOrUsername, password }` → `AuthData`
-- `POST /auth/refresh` → `{ refreshToken }` → `{ accessToken }`
-- `POST /auth/logout` → `{ refreshToken }` → void
-- `POST /auth/logout-all` (auth) → void
-- `POST /auth/change-password` (auth) → `{ currentPassword, newPassword }` → void
-- `GET /auth/me` (auth) → `{ user, wallet? }`
-- `POST /auth/session` (auth) → `{ user, wallet }` (server-driven session init)
-Notes:
-- Frontend stores `auth_token` and `refresh_token` in localStorage.
-- `fetchWithAuth` auto-retries after `POST /auth/refresh` on 401.
+### **Key Endpoints**
 
-## 6) Groups
-Frontend needs:
-- `POST /groups` (auth) → Create. Payload options:
-  - Client-provided address model: `{ name, description?, smartAccountAddress }`
-  - Server-owned model: `{ name, description? }` and backend assigns address
-- `GET /groups` (auth) → List groups for current user
-- `GET /groups/:id` (auth) → Group details (include `balance`)
-- Optional: `GET /groups/:id/members` (auth) → `GroupMember[]`
-- Optional: `POST /groups/:id/members` (auth/admin) → add member
-- Optional: `PATCH /groups/:id` (auth/admin) → update name/desc/threshold
-- Optional: `DELETE /groups/:id` (auth/admin)
-Recommended group response minimal fields:
-```json
-{
-  "id": "group-123",
-  "name": "Apartment 4B",
-  "description": "...",
-  "smartAccountAddress": "0x...", // or walletAddress
-  "createdAt": "2025-01-15T14:00:00Z",
-  "updatedAt": "2025-10-24T10:00:00Z"
-}
+- **Authentication:** `/auth/*` - Login, register, session management
+- **Groups:** `/groups/*` - Group CRUD operations
+- **Bills:** `/bills/*` - Expense management
+- **Proposals:** `/proposals/*` - Voting system
+- **Transactions:** `/transactions/*` - Blockchain transactions
+- **Notifications:** `/notifications/*` - Real-time updates
+
+For detailed API documentation, see [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+### **Development Workflow**
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes**
+   - Follow existing code style and conventions
+   - Add TypeScript types for new features
+   - Update tests if applicable
+4. **Commit your changes**
+   ```bash
+   git commit -m "Add amazing feature"
+   ```
+5. **Push to your branch**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+6. **Open a Pull Request**
+
+### **Code Style Guidelines**
+
+- Use TypeScript for all new code
+- Follow existing naming conventions
+- Add JSDoc comments for complex functions
+- Use Tailwind CSS for styling
+- Ensure components are accessible (ARIA labels, keyboard navigation)
+
+### **Testing**
+
+- Test new features thoroughly in development
+- Verify blockchain integration works correctly
+- Check responsive design on multiple screen sizes
+- Validate form inputs and error handling
+
+## 🔧 Environment Variables
+
+### **Frontend Configuration**
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL | ✅ |
+| `NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY` | Openfort public key | ✅ |
+
+### **Backend Requirements**
+
+The backend should provide these environment variables:
+- `OPENFORT_API_SECRET_KEY` - Server-side Openfort integration
+- `JWT_SECRET` / `JWT_REFRESH_SECRET` - Authentication tokens
+- `AMOY_RPC_URL` - Polygon Amoy RPC endpoint
+
+## 🐛 Troubleshooting
+
+### **Common Issues**
+
+**Build Errors:**
+```bash
+# Clear Next.js cache
+rm -rf .next
+npm run build
 ```
-Mapping to store:
-- Store expects `smartAccountAddress`, `isActive`, `votingThreshold`. If backend doesn’t provide `isActive` or `votingThreshold`, frontend defaults (`true`, `51`).
 
-## 7) Group Members
-- Shape used in store: `{ id, groupId, userId, role, joinedAt, isActive, user? }`
-- Endpoints:
-  - `GET /groups/:id/members` → `GroupMember[]`
-  - `POST /groups/:id/members` → add member `{ userId, role }`
-  - `PATCH /groups/:id/members/:memberId` → update role/status
-  - `DELETE /groups/:id/members/:memberId`
+**API Connection Issues:**
+- Verify `NEXT_PUBLIC_API_URL` is correct
+- Check backend server is running
+- Confirm CORS settings allow frontend domain
 
-## 8) Bills & Expenses
-Store shape:
-- `Bill { id, groupId, createdBy, title, description?, totalAmount, currency, dueDate?, payeeAddress, categoryId?, attachmentUrl?, status, createdAt, updatedAt, items? }`
-Endpoints:
-- `GET /groups/:id/bills` → `Bill[]`
-- `GET /bills/:id` → `Bill`
-- `POST /bills` → create bill (include `items[]` for line items)
-- `PATCH /bills/:id` → update bill
-- `DELETE /bills/:id`
-Statuses expected in UI: `DRAFT`, `PROPOSED`, `APPROVED`, `PAID`, `CANCELLED`.
+**Wallet Connection Problems:**
+- Ensure Openfort keys are valid
+- Check browser console for errors
+- Verify network connection to Polygon Amoy
 
-## 9) Proposals & Voting
-Store shape:
-- `Proposal { id, billId, groupId, createdBy, title, description?, status, votesFor, votesAgainst, votesAbstain, votingDeadline, executedAt?, createdAt, updatedAt }`
-- `Vote { id, proposalId, userId, voteType: "FOR"|"AGAINST"|"ABSTAIN", comment?, votedAt }`
-Endpoints:
-- `POST /proposals` → create proposal for a bill
-- `GET /groups/:id/proposals` → list proposals
-- `GET /proposals/:id` → proposal details (+ votes)
-- `POST /proposals/:id/votes` → cast vote `{ voteType, comment? }`
-- `POST /proposals/:id/execute` → execute approved proposal (trigger payment)
-- `PATCH /proposals/:id` → update (admin)
+## 📄 License
 
-## 10) Transactions
-Store shape:
-- `Transaction { id, billId?, groupId?, senderId?, receiverId?, amount, currency, txHash?, status, type, description?, metadata?, createdAt, updatedAt }`
-Endpoints:
-- `GET /groups/:id/transactions` → `Transaction[]`
-- `GET /transactions/:id`
-- `POST /transactions` → record/payment intent result
-Types: `deposit`, `withdrawal`, `payment` with statuses `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 11) Budget & Categories
-Store shape:
-- `BudgetCategory { id, groupId, name, color?, icon?, monthlyLimit?, isActive, createdAt }`
-Endpoints:
-- `GET /groups/:id/categories`
-- `POST /categories` → create category
-- `PATCH /categories/:id`
-- `DELETE /categories/:id`
-Optional backend aggregation for budget stats per group.
+## 🙏 Acknowledgments
 
-## 12) Recurring Bills
-Store shape:
-- `RecurringBill { id, groupId, title, description?, amount, currency, payeeAddress, frequency, startDate, nextDueDate, endDate?, isActive, autoPropose, categoryId?, createdAt, updatedAt }`
-Endpoints:
-- `GET /groups/:id/recurring`
-- `POST /recurring` → create schedule
-- `PATCH /recurring/:id` → pause/resume/update
-- `DELETE /recurring/:id`
-- Optional cron/worker to emit upcoming occurrences; with `autoPropose` create bills automatically.
+- [Next.js](https://nextjs.org/) - React framework
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+- [Radix UI](https://www.radix-ui.com/) - Accessible UI components
+- [Openfort](https://www.openfort.xyz/) - Blockchain wallet infrastructure
+- [Zustand](https://github.com/pmndrs/zustand) - State management
 
-## 13) Notifications
-Store shape:
-- `Notification { id, userId, type, title, message, metadata?, isRead, createdAt }`
-Endpoints:
-- `GET /notifications` (auth) → user notifications
-- `POST /notifications/mark-read` → mark by id
-- `POST /notifications/mark-all-read`
-- `DELETE /notifications/:id`
-Realtime: WebSocket/SSE to push events (proposals, votes, payments, budgets).
+---
 
-## 14) Wallet & Openfort Integration
-Frontend:
-- Initialize Openfort React Kit with `NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY`.
-- Obtain user wallet/smart account address client-side after login/connect.
-Group address models (choose one):
-- Client-provided: frontend sends `smartAccountAddress` during `POST /groups`.
-- Server-owned: backend assigns and persists address on create.
-Backend:
-- Use `OPENFORT_API_SECRET_KEY` for server-to-server Player/session intent operations.
-- Do not call `POST /v1/wallets` server-side for embedded wallets.
-- Fetch balances via JSON-RPC (Polygon Amoy) from persisted address.
+**Made with ❤️ for better shared living experiences**
 
-## 15) Environment Variables
-Frontend:
-- `NEXT_PUBLIC_API_URL`
-- `NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY`
-Backend:
-- `OPENFORT_API_SECRET_KEY`, `OPENFORT_ENVIRONMENT`
-- `AMOY_RPC_URL`
-- `JWT_SECRET`, `JWT_REFRESH_SECRET`
-- Database and storage configs (Prisma, etc.)
-
-## 16) Error Handling & Validation
-- Use consistent `ApiResponse` envelope.
-- Return 4xx with `success: false` and `errors` map on validation.
-- Frontend displays toast notifications on failure (e.g., auth, create group).
-
-## 17) Integration Checklist
-- Auth endpoints implemented and returning `AuthData`.
-- `groupsApi.create` returns group object with address.
-- Group list/detail endpoints wired; balance available.
-- Bills, proposals, votes, transactions endpoints implemented with statuses.
-- Budget categories and recurring schedules available.
-- Notifications and realtime channel (optional but recommended).
-- Openfort client initialized; address handling confirmed.
-- Env variables set in frontend and backend.
-
-## 18) Known Mappings & Defaults
-- Store `Group` expects `smartAccountAddress`, `isActive`, `votingThreshold`. If backend lacks these, frontend defaults to `smartAccountAddress` from response or client wallet, `isActive: true`, `votingThreshold: 51`.
-- `lib/types.ts` includes an alternative `Group` shape (e.g., `walletAddress`, `balance`, `members`). Backend may return either; `CreateGroupDialog` maps into store.
-
-## 19) Testing
-- Verify auth: register, login, token storage, refresh, session.
-- Create group: address is set, current group updates, navigation to dashboard.
-- Lists populate from backend: groups, bills, proposals, transactions, categories, recurring, notifications.
-- Voting flow: propose → vote → execute → transaction recorded.
-- Wallet: address shown; balance computed from backend.
-- Error scenarios: invalid payloads, unauthorized, network failures.
-
-This README is the single source of truth for making Roomy fully functional end-to-end. Implement the endpoints and contracts above, then remove mock data as backend integration is completed.
+For questions or support, please [open an issue](https://github.com/your-username/roomy-frontend/issues) or contact the development team.

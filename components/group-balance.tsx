@@ -52,8 +52,15 @@ export function GroupBalance() {
       })
       
       if (response.ok) {
-        // Refresh the page to get updated data
-        window.location.reload()
+        const result = await response.json()
+        if (result.success && result.data) {
+          // Update the store with fresh balance data instead of reloading the page
+          const { updateCurrentGroupBalance } = useStore.getState()
+          updateCurrentGroupBalance({
+            balance: result.data.balance,
+            balances: result.data.balances
+          })
+        }
       } else {
         console.error('Failed to refresh balance:', response.statusText)
       }

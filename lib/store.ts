@@ -238,6 +238,7 @@ interface AppState {
   setCurrentGroup: (group: Group | null) => void
   setGroupMembers: (members: GroupMember[]) => void
   addGroup: (group: Group) => void
+  updateCurrentGroupBalance: (balanceData: { balance?: number; balances?: { eth: number; usdc: number } }) => void
 
   // Bills state
   bills: Bill[]
@@ -297,6 +298,14 @@ export const useStore = create<AppState>()(
   addGroup: (group) =>
     set((state) => ({
       groups: [group, ...state.groups],
+    })),
+  updateCurrentGroupBalance: (balanceData: { balance?: number; balances?: { eth: number; usdc: number } }) =>
+    set((state) => ({
+      currentGroup: state.currentGroup ? {
+        ...state.currentGroup,
+        balance: balanceData.balance ?? state.currentGroup.balance,
+        balances: balanceData.balances ?? state.currentGroup.balances
+      } : null
     })),
 
   // Bills state
@@ -420,7 +429,12 @@ export const useStore = create<AppState>()(
 }),
     {
       name: "roomy-storage",
-      partialize: (state) => ({ currentGroup: state.currentGroup }),
+      partialize: (state) => ({ 
+        currentGroup: state.currentGroup,
+        bills: state.bills,
+        user: state.user,
+        wallet: state.wallet
+      }),
     }
   )
 )

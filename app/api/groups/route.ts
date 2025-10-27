@@ -1,75 +1,92 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest } from 'next/server';
+import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
+import { ValidationSchemas } from '@/lib/validation';
 
+// GET /api/groups - Get user's groups
 export async function GET(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const { searchParams } = new URL(request.url);
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        const page = searchParams.get('page');
+        const limit = searchParams.get('limit');
+
+        if (page) queryParams.append('page', page);
+        if (limit) queryParams.append('limit', limit);
+
+        const queryString = queryParams.toString();
+        const endpoint = `/groups${queryString ? `?${queryString}` : ''}`;
+
+        const groups = await proxyToBackend(endpoint, {
+          method: 'GET',
+        }, token);
+
+        return createSuccessResponse(groups, 200, 'Groups retrieved successfully');
+      } catch (error: any) {
+        console.error('Get groups error:', error);
+        
+        if (error.message.includes('401')) {
+          return createErrorResponse('Unauthorized access', 401, 'UNAUTHORIZED');
+        }
+        
+        return createErrorResponse('Failed to retrieve groups', 500, 'INTERNAL_ERROR');
+      }
+    },
+    {
+      requireAuth: true,
+      rateLimit: { maxRequests: 100, windowMs: 60000 },
     }
+  );
 
-    // TODO: Implement real groups endpoint
-    // This endpoint should:
-    // 1. Verify JWT token
-    // 2. Get groups for the authenticated user from database
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Groups endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Get groups error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to fetch groups" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }
 
+// POST /api/groups - Create group
 export async function POST(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest, validatedData: any) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const group = await proxyToBackend('/groups', {
+          method: 'POST',
+          body: JSON.stringify(validatedData),
+        }, token);
+
+        return createSuccessResponse(group, 201, 'Group created successfully');
+      } catch (error: any) {
+        console.error('Create group error:', error);
+        
+        if (error.message.includes('401')) {
+          return createErrorResponse('Unauthorized access', 401, 'UNAUTHORIZED');
+        }
+        if (error.message.includes('409')) {
+          return createErrorResponse('Group name already exists', 409, 'GROUP_NAME_EXISTS');
+        }
+        if (error.message.includes('400')) {
+          return createErrorResponse('Invalid group data', 400, 'INVALID_DATA');
+        }
+        
+        return createErrorResponse('Failed to create group', 500, 'INTERNAL_ERROR');
+      }
+    },
+    {
+      requireAuth: true,
+      validation: ValidationSchemas.CreateGroup,
+      rateLimit: { maxRequests: 20, windowMs: 60000 },
     }
+  );
 
-    const body = await request.json()
-    const { name, description, votingThreshold } = body
-
-    // Validate required fields
-    if (!name) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Missing required field: name" 
-      }, { status: 400 })
-    }
-
-    // TODO: Implement real group creation
-    // This endpoint should:
-    // 1. Verify JWT token
-    // 2. Create group in database
-    // 3. Add creator as admin member
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Group creation endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Create group error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to create group" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }

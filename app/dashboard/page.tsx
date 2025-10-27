@@ -172,13 +172,31 @@ export default function DashboardPage() {
         let current = currentGroup
         if (!current || !mappedGroups.find(g => g.id === current?.id)) {
           current = mappedGroups[0]
-          setCurrentGroup(current as any)
           console.log("Dashboard: Set current group from backend", current)
         }
 
-        // Fetch additional data for the current group
+        // Fetch complete group data including balance for the current group
         if (current) {
-          await fetchGroupData(current.id)
+          try {
+            console.log("Dashboard: Fetching complete group data with balance for", current.id)
+            const completeGroupData = await groupsApi.getById(current.id)
+            console.log("Dashboard: Complete group data fetched", completeGroupData)
+            
+            // Update the current group with complete data including balance
+            const updatedGroup = {
+              ...current,
+              balance: completeGroupData.balance || 0,
+              balances: completeGroupData.balances || { eth: 0, usdc: 0 }
+            }
+            setCurrentGroup(updatedGroup as any)
+            console.log("Dashboard: Updated current group with balance data", updatedGroup)
+            
+            await fetchGroupData(current.id)
+          } catch (error) {
+            console.error("Dashboard: Failed to fetch complete group data:", error)
+            setCurrentGroup(current as any)
+            await fetchGroupData(current.id)
+          }
         }
           
       } catch (error) {

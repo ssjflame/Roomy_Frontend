@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Debug Test</title>
+</head>
+<body>
+    <h1>Network Debug Test</h1>
+    <button onclick="testNetworkError()">Test Network Error Logging</button>
+    <div id="output"></div>
+
+    <script>
+        async function testNetworkError() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Testing network error logging...</p>';
+            
+            try {
+                // This should trigger our enhanced error logging
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                output.innerHTML += `<p>Response: ${JSON.stringify(result)}</p>`;
+            } catch (error) {
+                console.error('Caught error:', error);
+                output.innerHTML += `<p>Error caught: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

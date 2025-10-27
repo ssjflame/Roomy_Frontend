@@ -17,9 +17,11 @@ interface CreateBillDialogProps {
   // Optional edit mode with existing bill
   mode?: "create" | "edit"
   bill?: import("@/lib/store").Bill
+  // Callback to refresh bills after creation/update
+  onBillCreated?: () => void
 }
 
-export function CreateBillDialog({ open, onOpenChange, mode = "create", bill }: CreateBillDialogProps) {
+export function CreateBillDialog({ open, onOpenChange, mode = "create", bill, onBillCreated }: CreateBillDialogProps) {
   const { currentGroup, addBill, updateBill, budgetCategories } = useStore()
 
   const [title, setTitle] = useState("")
@@ -147,6 +149,11 @@ export function CreateBillDialog({ open, onOpenChange, mode = "create", bill }: 
 
         addBill(newBill)
         toast.success("Bill created", { description: "The bill was created successfully." })
+      }
+
+      // Call the refresh callback to update the bills list
+      if (onBillCreated) {
+        onBillCreated()
       }
 
       onOpenChange(false)

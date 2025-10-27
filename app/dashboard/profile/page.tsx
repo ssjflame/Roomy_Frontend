@@ -243,7 +243,7 @@ export default function ProfilePage() {
                           <Label>Openfort Player ID</Label>
                           <div className="flex gap-2">
                             <Input
-                              value={wallet.openfortPlayerId}
+                              value={wallet?.openfortPlayerId || "Not available"}
                               readOnly
                               className="font-mono text-sm"
                             />
@@ -318,9 +318,9 @@ export default function ProfilePage() {
                         <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">No wallet found</h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Create a wallet to start making payments
+                          Unable to load wallet data. This may be due to a network connection issue.
                         </p>
-                        <Button>Create Wallet</Button>
+                        <Button onClick={() => window.location.reload()}>Retry</Button>
                       </div>
                     </CardContent>
                   </Card>

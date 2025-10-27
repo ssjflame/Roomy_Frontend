@@ -78,6 +78,7 @@ export interface GroupMember {
 // Bill items
 export interface BillItem {
   id: string
+  billId: string
   description: string
   amount: number
   quantity: number
@@ -100,7 +101,7 @@ export interface Bill {
   createdAt: string
   updatedAt: string
   items?: BillItem[]
-  creator?: { id: string; username: string; email: string }
+  creator?: User
   category?: { id: string; name: string; color?: string }
   group?: { id: string; name: string }
   proposal?: Proposal
