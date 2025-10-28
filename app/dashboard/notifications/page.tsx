@@ -27,7 +27,9 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all")
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if no user and no auth token
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!user && !authToken) {
       router.push("/")
     }
   }, [user, router])

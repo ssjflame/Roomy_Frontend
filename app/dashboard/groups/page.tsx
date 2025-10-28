@@ -39,7 +39,9 @@ export default function GroupsPage() {
   const [openMenuGroupId, setOpenMenuGroupId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if no user and no auth token
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!user && !authToken) {
       router.push("/")
     }
   }, [user, router])

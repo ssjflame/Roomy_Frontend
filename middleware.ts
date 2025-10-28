@@ -57,6 +57,7 @@ export async function middleware(req: NextRequest) {
       }
       return res
     }
+    // For authenticated users on valid dashboard pages, just continue
     return baseResponse
   }
 

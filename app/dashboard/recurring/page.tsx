@@ -16,7 +16,9 @@ export default function RecurringBillsPage() {
   const { user, currentGroup, recurringBills, budgetCategories } = useStore()
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if no user and no auth token
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!user && !authToken) {
       router.push("/")
     }
   }, [user, router])

@@ -15,7 +15,9 @@ export default function BudgetPage() {
   const { user, currentGroup, budgetCategories, bills } = useStore()
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect if no user and no auth token
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!user && !authToken) {
       router.push("/")
     }
   }, [user, router])

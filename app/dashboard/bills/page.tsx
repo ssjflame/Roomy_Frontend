@@ -95,7 +95,9 @@ export default function BillsPage() {
 
   // Fetch bills when component loads or currentGroup changes
   useEffect(() => {
-    if (!user) {
+    // Only redirect if no user and no auth token
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    if (!user && !authToken) {
       router.push("/")
       return
     }

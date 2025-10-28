@@ -54,20 +54,16 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    // Check authentication first
+    // Only redirect if no user and no auth token
     const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
     
-    if (!authToken) {
-      console.log('🔍 Profile page - No auth token found, redirecting to login')
+    if (!authToken && !user) {
+      console.log('🔍 Profile page - No auth token and no user, redirecting to login')
       router.push("/auth/login")
       return
     }
 
-    if (!user) {
-      console.log('🔍 Profile page - No user found, redirecting to login')
-      router.push("/auth/login")
-      return
-    } else {
+    if (user) {
       // Add detailed logging when profile page loads
       console.log('🔍 Profile page useEffect - user exists:', !!user)
       console.log('🔍 Profile page useEffect - wallet exists:', !!wallet)
@@ -88,8 +84,6 @@ export default function ProfilePage() {
             }
           } catch (error) {
             console.error('🔍 Profile page - Failed to refresh wallet data:', error)
-            // If profile fetch fails, redirect to login
-            router.push("/auth/login")
           }
         }
         refreshWalletData()
