@@ -209,15 +209,29 @@ export default function DashboardPage() {
             console.log("Dashboard: Fetching complete group data with balance for", current.id)
             const completeGroupData = await groupsApi.getById(current.id)
             console.log("Dashboard: Complete group data fetched", completeGroupData)
+            console.log("Dashboard: Raw API balance value:", completeGroupData.balance)
+            console.log("Dashboard: Raw API balances object:", completeGroupData.balances)
             
             // Update the current group with complete data including balance
             const updatedGroup = {
               ...current,
               balance: completeGroupData.balance || 0,
-              balances: completeGroupData.balances || { eth: 0, usdc: 0 }
+              balances: completeGroupData.balances || { eth: completeGroupData.balance || 0, usdc: 0 }
             }
             setCurrentGroup(updatedGroup as any)
             console.log("Dashboard: Updated current group with balance data", updatedGroup)
+            console.log("Dashboard: Final group balance:", updatedGroup.balance)
+            console.log("Dashboard: Final group balances:", updatedGroup.balances)
+            
+            // Also update the store with the balance data
+            const { updateCurrentGroupBalance } = useStore.getState()
+            const balanceUpdate = {
+              balance: completeGroupData.balance || 0,
+              balances: completeGroupData.balances || { eth: completeGroupData.balance || 0, usdc: 0 }
+            }
+            console.log("Dashboard: Calling updateCurrentGroupBalance with:", balanceUpdate)
+            updateCurrentGroupBalance(balanceUpdate)
+            console.log("Dashboard: Updated store with balance data:", balanceUpdate)
             
             await fetchGroupData(current.id)
           } catch (error) {

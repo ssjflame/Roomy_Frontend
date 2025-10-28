@@ -305,13 +305,22 @@ export const useStore = create<AppState>()(
       groups: [group, ...state.groups],
     })),
   updateCurrentGroupBalance: (balanceData: { balance?: number; balances?: { eth: number; usdc: number } }) =>
-    set((state) => ({
-      currentGroup: state.currentGroup ? {
+    set((state) => {
+      console.log('Store updateCurrentGroupBalance called with:', balanceData)
+      console.log('Store current group before update:', state.currentGroup)
+      
+      const updatedGroup = state.currentGroup ? {
         ...state.currentGroup,
         balance: balanceData.balance ?? state.currentGroup.balance,
         balances: balanceData.balances ?? state.currentGroup.balances
       } : null
-    })),
+      
+      console.log('Store updated group after balance update:', updatedGroup)
+      
+      return {
+        currentGroup: updatedGroup
+      }
+    }),
 
   // Bills state
   bills: [],
@@ -435,7 +444,6 @@ export const useStore = create<AppState>()(
     {
       name: "roomy-storage",
       partialize: (state) => ({ 
-        currentGroup: state.currentGroup,
         bills: state.bills,
         user: state.user,
         wallet: state.wallet

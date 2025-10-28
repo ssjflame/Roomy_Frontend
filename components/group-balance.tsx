@@ -23,6 +23,22 @@ export function GroupBalance() {
   // Use new balance format if available, fallback to legacy
   const ethBalance = currentGroup.balances?.eth ?? currentGroup.balance ?? 0
   const usdcBalance = currentGroup.balances?.usdc ?? 0
+  
+  console.log('GroupBalance: Current group balance data:', {
+    groupId: currentGroup.id,
+    balance: currentGroup.balance,
+    balances: currentGroup.balances,
+    ethBalance,
+    usdcBalance,
+    rawCurrentGroup: currentGroup
+  })
+  
+  console.log('GroupBalance: Balance calculation breakdown:', {
+    'currentGroup.balances?.eth': currentGroup.balances?.eth,
+    'currentGroup.balance': currentGroup.balance,
+    'final ethBalance': ethBalance,
+    'final usdcBalance': usdcBalance
+  })
 
   const handleCopyAddress = async () => {
     if (currentGroup.smartAccountAddress) {
@@ -42,7 +58,8 @@ export function GroupBalance() {
     
     setIsRefreshing(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('auth_token')
+      console.log('GroupBalance: Refreshing balance for group', currentGroup.id)
       const response = await fetch(`/api/groups/${currentGroup.id}/refresh-balance`, {
         method: 'POST',
         headers: {
@@ -53,19 +70,24 @@ export function GroupBalance() {
       
       if (response.ok) {
         const result = await response.json()
+        console.log('GroupBalance: Refresh balance response:', result)
         if (result.success && result.data) {
           // Update the store with fresh balance data instead of reloading the page
           const { updateCurrentGroupBalance } = useStore.getState()
+          console.log('GroupBalance: Updating balance in store:', {
+            balance: result.data.balance,
+            balances: result.data.balances
+          })
           updateCurrentGroupBalance({
             balance: result.data.balance,
             balances: result.data.balances
           })
         }
       } else {
-        console.error('Failed to refresh balance:', response.statusText)
+        console.error('GroupBalance: Failed to refresh balance:', response.statusText)
       }
     } catch (error) {
-      console.error('Failed to refresh balance:', error)
+      console.error('GroupBalance: Failed to refresh balance:', error)
     } finally {
       setIsRefreshing(false)
     }
