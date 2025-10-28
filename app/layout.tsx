@@ -2,6 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
 import { Sora, Plus_Jakarta_Sans } from "next/font/google"
+import { AuthProvider } from "@/components/auth-provider"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "Roomy - Shared Expense Management",
@@ -19,7 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={fontSans.className}>
-      <body className={`${fontSans.variable} ${fontBackup.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${fontSans.variable} ${fontBackup.variable} font-sans antialiased`}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+        <Toaster />
+      </body>
     </html>
   )
 }

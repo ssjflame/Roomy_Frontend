@@ -1,23 +1,56 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest } from 'next/server';
+import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params
+// POST /api/proposals/[id]/execute - Execute proposal
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    // TODO: Implement real proposal execution
-    // This endpoint should:
-    // 1. Verify proposal exists and is approved
-    // 2. Check user permissions (creator or group admin)
-    // 3. Mark proposal as executed
-    // 4. Potentially trigger on-chain payment flows
-    // 5. Update related bill status
+        const { id } = await params;
+        
+        // Validate UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+          return createErrorResponse('Invalid proposal ID format', 400, 'INVALID_ID');
+        }
 
-    return NextResponse.json({ 
-      success: false, 
-      error: "Proposal execution endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Execute proposal error:", error)
-    return NextResponse.json({ error: "Failed to execute proposal" }, { status: 500 })
-  }
+        const result = await proxyToBackend(`/proposals/${id}/execute`, {
+          method: 'POST',
+        }, token);
+
+        return createSuccessResponse(result, 200, 'Proposal executed successfully');
+      } catch (error: any) {
+        console.error('Execute proposal error:', error);
+        
+        if (error.message.includes('401')) {
+          return createErrorResponse('Unauthorized access', 401, 'UNAUTHORIZED');
+        }
+        if (error.message.includes('404')) {
+          return createErrorResponse('Proposal not found', 404, 'PROPOSAL_NOT_FOUND');
+        }
+        if (error.message.includes('403')) {
+          return createErrorResponse('Access denied', 403, 'ACCESS_DENIED');
+        }
+        if (error.message.includes('400')) {
+          return createErrorResponse('Proposal cannot be executed', 400, 'EXECUTION_ERROR');
+        }
+        
+        return createErrorResponse('Failed to execute proposal', 500, 'EXECUTION_ERROR');
+      }
+    },
+    {
+      requireAuth: true,
+      rateLimit: { maxRequests: 5, windowMs: 60000 },
+    }
+  );
+
+  return handler(request);
 }

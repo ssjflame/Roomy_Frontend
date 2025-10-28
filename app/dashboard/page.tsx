@@ -71,7 +71,7 @@ export default function DashboardPage() {
       if (transactionsResult.status === 'fulfilled') {
         setTransactions(transactionsResult.value as any)
       } else {
-        console.warn("Failed to fetch transactions:", transactionsResult.reason)
+        console.info("Transactions endpoint not available, using empty array:", transactionsResult.reason)
         setTransactions([] as any)
       }
 
@@ -130,13 +130,26 @@ export default function DashboardPage() {
         try {
           const profile = await authApi.getProfile()
           console.log("Dashboard: Profile retrieved from backend", profile)
+          console.log("Dashboard: Profile wallet data", profile.wallet)
           setUser({
             ...profile.user,
             isEmailVerified: profile.user.isEmailVerified ?? true,
             avatarUrl: profile.user.avatarUrl ?? undefined,
             lastLoginAt: profile.user.lastLoginAt ?? new Date().toISOString()
           })
-          if (profile.wallet) setWallet(profile.wallet)
+          if (profile.user) {
+            console.log("Dashboard: Setting user from profile", profile.user)
+            setUser(profile.user)
+          }
+          
+          if (profile.wallet) {
+            console.log("Dashboard: Setting wallet from profile", profile.wallet)
+            console.log("Dashboard: Wallet balance:", profile.wallet.balance)
+            console.log("Dashboard: Wallet balances:", profile.wallet.balances)
+            setWallet(profile.wallet)
+          } else {
+            console.log("Dashboard: No wallet in profile response")
+          }
           
           // If wallet isn't present yet, trigger session to provision it
           if (!profile.wallet) {

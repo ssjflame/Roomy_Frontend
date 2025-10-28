@@ -31,16 +31,76 @@ export default function ProfilePage() {
   const chain = getChainConfig()
   const router = useRouter()
   const { user, wallet, groupMembers } = useStore()
+  
+  console.log('🔍 Profile page - user:', user)
+  console.log('🔍 Profile page - wallet:', wallet)
+  console.log('🔍 Profile page - wallet balances:', wallet?.balances)
+  console.log('🔍 Profile page - wallet balance:', wallet?.balance)
+  
   const [copied, setCopied] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
-    if (!user) {
-      router.push("/")
+    // Check authentication first
+    const authToken = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+    
+    if (!authToken) {
+      console.log('🔍 Profile page - No auth token found, redirecting to login')
+      router.push("/auth/login")
+      return
     }
-  }, [user, router])
+
+    if (!user) {
+      console.log('🔍 Profile page - No user found, redirecting to login')
+      router.push("/auth/login")
+      return
+    } else {
+      // Add detailed logging when profile page loads
+      console.log('🔍 Profile page useEffect - user exists:', !!user)
+      console.log('🔍 Profile page useEffect - wallet exists:', !!wallet)
+      console.log('🔍 Profile page useEffect - wallet data:', JSON.stringify(wallet, null, 2))
+      
+      // If no wallet data, try to refresh it
+      if (!wallet) {
+        console.log('🔍 Profile page - No wallet found, attempting to refresh profile data')
+        const refreshWalletData = async () => {
+          try {
+            const { authApi } = await import('@/lib/api')
+            const { setWallet } = await import('@/lib/store').then(m => m.useStore.getState())
+            const profile = await authApi.getProfile()
+            console.log('🔍 Profile page - Refreshed profile data:', profile)
+            if (profile.wallet) {
+              console.log('🔍 Profile page - Setting wallet from refresh:', profile.wallet)
+              setWallet(profile.wallet)
+            }
+          } catch (error) {
+            console.error('🔍 Profile page - Failed to refresh wallet data:', error)
+            // If profile fetch fails, redirect to login
+            router.push("/auth/login")
+          }
+        }
+        refreshWalletData()
+      }
+    }
+  }, [user, router, wallet])
+
+  // Show loading while checking authentication
+  if (typeof window !== "undefined" && !localStorage.getItem("auth_token")) {
+    return null
+  }
 
   if (!user) {
     return null
@@ -129,7 +189,18 @@ export default function ProfilePage() {
 
                 <div className="pt-4 border-t">
                   <div className="text-xs text-muted-foreground">
-                    Member since {format(new Date(user.createdAt), "MMMM yyyy")}
+                    Member since {(() => {
+                      try {
+                        const date = new Date(user.createdAt)
+                        if (isNaN(date.getTime())) {
+                          return "Unknown"
+                        }
+                        return format(date, "MMMM yyyy")
+                      } catch (error) {
+                        console.warn('Invalid date format for user.createdAt:', user.createdAt)
+                        return "Unknown"
+                      }
+                    })()}
                   </div>
                 </div>
 
@@ -274,7 +345,7 @@ export default function ProfilePage() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => handleCopyAddress(wallet.openfortAccountId)}
+                                onClick={() => handleCopyAddress(wallet.openfortAccountId!)}
                               >
                                 {copied ? (
                                   <CheckCircle className="w-4 h-4 text-green-500" />

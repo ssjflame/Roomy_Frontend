@@ -1,76 +1,85 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest } from 'next/server';
+import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
+import { ValidationSchemas } from '@/lib/validation';
 
+// GET /api/bills - Get user bills
 export async function GET(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const { searchParams } = new URL(request.url);
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        const page = searchParams.get('page');
+        const limit = searchParams.get('limit');
+        const status = searchParams.get('status');
+        const groupId = searchParams.get('groupId');
+
+        if (page) queryParams.append('page', page);
+        if (limit) queryParams.append('limit', limit);
+        if (status) queryParams.append('status', status);
+        if (groupId) queryParams.append('groupId', groupId);
+
+        const queryString = queryParams.toString();
+        const endpoint = `/bills${queryString ? `?${queryString}` : ''}`;
+
+        const bills = await proxyToBackend(endpoint, {
+          method: 'GET',
+        }, token);
+
+        return createSuccessResponse(bills);
+      } catch (error: any) {
+        console.error('Get bills error:', error);
+        return createErrorResponse('Failed to fetch bills', 500, 'FETCH_BILLS_ERROR');
+      }
     }
+  );
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url)
-    const groupId = searchParams.get("groupId")
-
-    // Already cleaned up - this endpoint returns 501
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Bills endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Get bills error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to fetch bills" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }
 
+// POST /api/bills - Create bill
 export async function POST(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const body = await request.json();
+        const { groupId, title, totalAmount, payeeAddress } = body;
+
+        // Validate required fields
+        if (!groupId || !title || !totalAmount || !payeeAddress) {
+          return createErrorResponse('Missing required fields: groupId, title, totalAmount, payeeAddress', 400, 'VALIDATION_ERROR');
+        }
+
+        const bill = await proxyToBackend('/bills', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }, token);
+
+        return createSuccessResponse(bill, 201, 'Bill created successfully');
+      } catch (error: any) {
+        console.error('Create bill error:', error);
+        if (error.status === 400) {
+          return createErrorResponse(error.message || 'Invalid bill data', 400, 'VALIDATION_ERROR');
+        }
+        if (error.status === 403) {
+          return createErrorResponse('Insufficient permissions to create bill', 403, 'PERMISSION_DENIED');
+        }
+        return createErrorResponse('Failed to create bill', 500, 'CREATE_BILL_ERROR');
+      }
     }
+  );
 
-    const body = await request.json()
-    const { groupId, title, description, totalAmount, currency, dueDate, payeeAddress, categoryId } = body
-
-    // Validate required fields
-    if (!groupId || !title || !totalAmount || !currency || !dueDate || !payeeAddress) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Missing required fields: groupId, title, totalAmount, currency, dueDate, payeeAddress" 
-      }, { status: 400 })
-    }
-
-    // TODO: Implement real bill creation
-    // This endpoint should:
-    // 1. Verify JWT token
-    // 2. Create bill in database
-    // 3. Optionally create proposal for the bill
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Bill creation endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Create bill error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to create bill" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }

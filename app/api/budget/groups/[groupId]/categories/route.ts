@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
 
-// GET /api/budget/groups/[groupId]/categories - Get budget categories by group
+// GET /api/budget/groups/[groupId]/categories - Get group budget categories
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ groupId: string }> }
@@ -22,28 +22,13 @@ export async function GET(
           return createErrorResponse('Invalid group ID format', 400, 'INVALID_ID');
         }
 
-        const { searchParams } = new URL(request.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '20');
-        
-        // Validate pagination parameters
-        if (page < 1 || limit < 1 || limit > 100) {
-          return createErrorResponse('Invalid pagination parameters', 400, 'INVALID_PAGINATION');
-        }
-
-        // Build query parameters
-        const queryParams = new URLSearchParams({
-          page: page.toString(),
-          limit: limit.toString(),
-        });
-
-        const categories = await proxyToBackend(`/budget/groups/${groupId}/categories?${queryParams.toString()}`, {
+        const categories = await proxyToBackend(`/budget/groups/${groupId}/categories`, {
           method: 'GET',
         }, token);
 
-        return createSuccessResponse(categories, 200, 'Budget categories retrieved successfully');
+        return createSuccessResponse(categories, 200, 'Group budget categories retrieved successfully');
       } catch (error: any) {
-        console.error('Get budget categories by group error:', error);
+        console.error('Get group budget categories error:', error);
         
         if (error.message.includes('401')) {
           return createErrorResponse('Unauthorized access', 401, 'UNAUTHORIZED');
@@ -52,10 +37,10 @@ export async function GET(
           return createErrorResponse('Group not found', 404, 'GROUP_NOT_FOUND');
         }
         if (error.message.includes('403')) {
-          return createErrorResponse('Access denied - not a group member', 403, 'ACCESS_DENIED');
+          return createErrorResponse('Access denied', 403, 'ACCESS_DENIED');
         }
         
-        return createErrorResponse('Failed to retrieve budget categories', 500, 'INTERNAL_ERROR');
+        return createErrorResponse('Failed to retrieve group budget categories', 500, 'INTERNAL_ERROR');
       }
     },
     {

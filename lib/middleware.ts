@@ -68,7 +68,7 @@ export async function proxyToBackend<T>(
   options: RequestInit = {},
   authToken?: string
 ): Promise<T> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://roomy-6zsa.onrender.com/api';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   
   console.log('🌐 ProxyToBackend - Making request to:', fullUrl);

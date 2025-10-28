@@ -1,35 +1,42 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest } from 'next/server';
+import { createAPIHandler, proxyToBackend, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
+import { ValidationSchemas } from '@/lib/validation';
 
+// POST /api/auth/register - Register new user
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { email, password, firstName, lastName, username, phoneNumber } = body
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const body = await request.json();
+        
+        // Validate required fields
+        const { email, username, password, firstName, lastName } = body;
+        if (!email || !username || !password) {
+          return createErrorResponse('Missing required fields: email, username, password', 400, 'VALIDATION_ERROR');
+        }
 
-    // Validate required fields
-    if (!email || !password || !firstName || !lastName) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Missing required fields: email, password, firstName, lastName" 
-      }, { status: 400 })
+        // Proxy to backend
+        const result = await proxyToBackend('/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+
+        return createSuccessResponse(result, 201);
+      } catch (error: any) {
+        console.error('Register error:', error);
+        if (error.message?.includes('User already exists')) {
+          return createErrorResponse('User already exists', 409, 'USER_EXISTS');
+        }
+        return createErrorResponse('Registration failed', 500, 'REGISTRATION_ERROR');
+      }
+    },
+    {
+      rateLimit: { maxRequests: 5, windowMs: 60000 }, // 5 requests per minute
     }
+  );
 
-    // TODO: Implement real registration
-    // This endpoint should:
-    // 1. Hash the password
-    // 2. Check if user already exists
-    // 3. Create user in database
-    // 4. Generate JWT tokens
-    // 5. Create wallet for user
-    
-    return NextResponse.json({ 
-      success: false, 
-      error: "Registration endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Register error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Registration failed" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }

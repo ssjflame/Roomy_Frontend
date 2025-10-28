@@ -1,79 +1,84 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest } from 'next/server';
+import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
 
+// GET /api/proposals - Get user proposals
 export async function GET(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const { searchParams } = new URL(request.url);
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        const page = searchParams.get('page');
+        const limit = searchParams.get('limit');
+        const status = searchParams.get('status');
+        const groupId = searchParams.get('groupId');
+
+        if (page) queryParams.append('page', page);
+        if (limit) queryParams.append('limit', limit);
+        if (status) queryParams.append('status', status);
+        if (groupId) queryParams.append('groupId', groupId);
+
+        const queryString = queryParams.toString();
+        const endpoint = `/proposals${queryString ? `?${queryString}` : ''}`;
+
+        const proposals = await proxyToBackend(endpoint, {
+          method: 'GET',
+        }, token);
+
+        return createSuccessResponse(proposals);
+      } catch (error: any) {
+        console.error('Get proposals error:', error);
+        return createErrorResponse('Failed to fetch proposals', 500, 'FETCH_PROPOSALS_ERROR');
+      }
     }
+  );
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url)
-    const groupId = searchParams.get("groupId")
-
-    // TODO: Implement real proposals endpoint
-    // This endpoint should:
-    // 1. Verify JWT token
-    // 2. Get proposals from database, optionally filtered by groupId
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Proposals endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Get proposals error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to fetch proposals" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }
 
+// POST /api/proposals - Create proposal
 export async function POST(request: NextRequest) {
-  try {
-    // Get auth token from cookies or headers
-    const authToken = request.cookies.get("auth_token")?.value || 
-                     request.headers.get("authorization")?.replace("Bearer ", "")
+  const handler = createAPIHandler(
+    async (request: NextRequest) => {
+      try {
+        const token = getAuthToken(request);
+        if (!token) {
+          return createErrorResponse('Authentication required', 401, 'UNAUTHORIZED');
+        }
 
-    if (!authToken) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 })
+        const body = await request.json();
+        const { billId, title, votingDeadline } = body;
+
+        // Validate required fields
+        if (!billId || !title || !votingDeadline) {
+          return createErrorResponse('Missing required fields: billId, title, votingDeadline', 400, 'VALIDATION_ERROR');
+        }
+
+        const proposal = await proxyToBackend('/proposals', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }, token);
+
+        return createSuccessResponse(proposal, 201, 'Proposal created successfully');
+      } catch (error: any) {
+        console.error('Create proposal error:', error);
+        if (error.status === 400) {
+          return createErrorResponse(error.message || 'Invalid proposal data', 400, 'VALIDATION_ERROR');
+        }
+        if (error.status === 403) {
+          return createErrorResponse('Insufficient permissions to create proposal', 403, 'PERMISSION_DENIED');
+        }
+        return createErrorResponse('Failed to create proposal', 500, 'CREATE_PROPOSAL_ERROR');
+      }
     }
+  );
 
-    const body = await request.json()
-    const { billId, title, description, votingDeadline, groupId } = body
-
-    // Validate required fields
-    if (!billId || !title || !votingDeadline || !groupId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Missing required fields: billId, title, votingDeadline, groupId" 
-      }, { status: 400 })
-    }
-
-    // TODO: Implement real proposal creation
-    // This endpoint should:
-    // 1. Verify JWT token
-    // 2. Create proposal in database
-    // 3. Notify group members
-
-    return NextResponse.json({ 
-      success: false, 
-      error: "Proposal creation endpoint not implemented" 
-    }, { status: 501 })
-  } catch (error) {
-    console.error("Create proposal error:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to create proposal" 
-    }, { status: 500 })
-  }
+  return handler(request);
 }

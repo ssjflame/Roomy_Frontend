@@ -410,9 +410,22 @@ export const authApi = {
   /**
    * Get current user profile
    */
-  async getProfile(): Promise<{ user: User; wallet?: Wallet }> {
-    const response = await fetchWithAuth<{ user: User; wallet?: Wallet }>("/auth/me")
-    return response.data
+  async getProfile(): Promise<{ user: User; wallet: Wallet | null }> {
+    const response = await fetchWithAuth<any>('/users/profile')
+    console.log('🔍 API getProfile response:', JSON.stringify(response, null, 2))
+    
+    // The API response structure is { success: true, data: { ...user, wallet: {...} } }
+    const userData = response.data
+    console.log('🔍 API getProfile userData:', JSON.stringify(userData, null, 2))
+    
+    const { wallet, ...userWithoutWallet } = userData
+    console.log('🔍 API getProfile - extracted wallet:', JSON.stringify(wallet, null, 2))
+    console.log('🔍 API getProfile - extracted user:', JSON.stringify(userWithoutWallet, null, 2))
+    
+    return {
+      user: userWithoutWallet as User,
+      wallet: wallet || null
+    }
   },
 
   /**
@@ -922,8 +935,13 @@ export const transactionsApi = {
     if (page) params.append("page", page.toString())
     if (limit) params.append("limit", limit.toString())
     
-    const response = await fetchWithAuth(`/transactions/group/${groupId}?${params.toString()}`)
-    return response.data as Transaction[]
+    try {
+      const response = await fetchWithAuth(`/groups/${groupId}/transactions?${params.toString()}`)
+      return response.data as Transaction[]
+    } catch (error) {
+      console.warn('⚠️ Transactions endpoint not available, returning empty array:', error)
+      return []
+    }
   },
 }
 

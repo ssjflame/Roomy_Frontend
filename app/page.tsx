@@ -34,6 +34,10 @@ export default function HomePage() {
     }
   }
 
+  const handleLogin = () => {
+    router.push("/auth/login")
+  }
+
   useEffect(() => {
     // Hero intro animations
     if (heroTextRef.current && heroCtaRef.current && heroImageRef.current) {
@@ -165,6 +169,7 @@ export default function HomePage() {
             <button onClick={() => setShowContactDialog(true)} className="hover:text-primary">Contact</button>
           </div>
           <div className="flex gap-2">
+            {!user && <Button size="sm" variant="outline" onClick={handleLogin}>Log In</Button>}
             <Button size="sm" onClick={handleGetStarted}>Get Started</Button>
           </div>
         </div>

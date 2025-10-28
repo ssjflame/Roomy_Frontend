@@ -20,30 +20,44 @@ export function UserNav() {
 
   if (!user) return null
 
-  const handleLogout = () => {
-    // Clear authentication tokens
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("refresh_token")
-    // Clear cookies for middleware
+  const handleLogout = async () => {
     try {
-      document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax"
-      document.cookie = "refresh_token=; Max-Age=0; Path=/; SameSite=Lax"
-    } catch {}
-    
-    // Clear store state
-    setUser(null)
-    setWallet(null)
-    setCurrentGroup(null)
-    
-    // Redirect to home
-    router.push("/")
+      // Clear authentication tokens
+      localStorage.removeItem("auth_token")
+      localStorage.removeItem("refresh_token")
+      
+      // Clear cookies for middleware
+      try {
+        document.cookie = "auth_token=; Max-Age=0; Path=/; SameSite=Lax"
+        document.cookie = "refresh_token=; Max-Age=0; Path=/; SameSite=Lax"
+      } catch {}
+      
+      // Clear store state
+      setUser(null)
+      setWallet(null)
+      setCurrentGroup(null)
+      setProposals([])
+      
+      // Force a hard redirect to ensure clean state
+      window.location.href = "/"
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Fallback to router push if window.location fails
+      router.push("/")
+    }
   }
 
   const getInitials = () => {
     if (user.firstName && user.lastName) {
       return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
     }
-    return user.username?.substring(0, 2).toUpperCase() || user.email.substring(0, 2).toUpperCase()
+    if (user.username) {
+      return user.username.substring(0, 2).toUpperCase()
+    }
+    if (user.email) {
+      return user.email.substring(0, 2).toUpperCase()
+    }
+    return "U"
   }
 
   const truncateAddress = (address?: string) => {

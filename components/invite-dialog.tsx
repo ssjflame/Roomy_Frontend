@@ -82,9 +82,9 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
     try {
       const response = await fetchWithAuth(`/groups/${currentGroup.id}/invite`, {
         method: 'POST',
-        body: JSON.stringify({
+        data: {
           emails: validation.emails
-        }),
+        },
       })
 
       if (response.success && response.data) {

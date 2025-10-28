@@ -2,13 +2,13 @@ import { NextRequest } from 'next/server';
 import { createAPIHandler, proxyToBackend, getAuthToken, createErrorResponse, createSuccessResponse } from '@/lib/middleware';
 import { ValidationSchemas } from '@/lib/validation';
 
-// PUT /api/users/notifications/[id] - Mark notification as read
+// PUT /api/users/notifications/[id]/read - Mark notification as read
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const handler = createAPIHandler(
-    async (request: NextRequest, validatedData: any) => {
+    async (request: NextRequest) => {
       try {
         const token = getAuthToken(request);
         if (!token) {
@@ -23,14 +23,13 @@ export async function PUT(
           return createErrorResponse('Invalid notification ID format', 400, 'INVALID_ID');
         }
 
-        const notification = await proxyToBackend(`/users/notifications/${id}`, {
+        const notification = await proxyToBackend(`/users/notifications/${id}/read`, {
           method: 'PUT',
-          body: JSON.stringify(validatedData),
         }, token);
 
-        return createSuccessResponse(notification, 200, 'Notification updated successfully');
+        return createSuccessResponse(notification, 200, 'Notification marked as read');
       } catch (error: any) {
-        console.error('Update notification error:', error);
+        console.error('Mark notification as read error:', error);
         
         if (error.message.includes('401')) {
           return createErrorResponse('Unauthorized access', 401, 'UNAUTHORIZED');
@@ -42,12 +41,11 @@ export async function PUT(
           return createErrorResponse('Access denied', 403, 'ACCESS_DENIED');
         }
         
-        return createErrorResponse('Failed to update notification', 500, 'INTERNAL_ERROR');
+        return createErrorResponse('Failed to mark notification as read', 500, 'INTERNAL_ERROR');
       }
     },
     {
       requireAuth: true,
-      validation: ValidationSchemas.UpdateNotification,
       rateLimit: { maxRequests: 50, windowMs: 60000 },
     }
   );

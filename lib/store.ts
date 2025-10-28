@@ -288,7 +288,10 @@ export const useStore = create<AppState>()(
   user: null,
   wallet: null,
   setUser: (user) => set({ user }),
-  setWallet: (wallet) => set({ wallet }),
+  setWallet: (wallet) => {
+    console.log('🔍 Store setWallet called with:', JSON.stringify(wallet, null, 2))
+    set({ wallet })
+  },
 
   // Groups state
   groups: [],
